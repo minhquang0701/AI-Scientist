@@ -1,0 +1,348 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2024_conference,times}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{titletoc}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\graphicspath{{../}} % To reference your generated figures, see below.
+\begin{filecontents}{references.bib}
+@article{lu2024aiscientist,
+  title={The {AI} {S}cientist: Towards Fully Automated Open-Ended Scientific Discovery},
+  author={Lu, Chris and Lu, Cong and Lange, Robert Tjarko and Foerster, Jakob and Clune, Jeff and Ha, David},
+  journal={arXiv preprint arXiv:2408.06292},
+  year={2024}
+}
+
+@book{goodfellow2016deep,
+  title={Deep learning},
+  author={Goodfellow, Ian and Bengio, Yoshua and Courville, Aaron and Bengio, Yoshua},
+  volume={1},
+  year={2016},
+  publisher={MIT Press}
+}
+
+@article{vaswani2017attention,
+  title={Attention is all you need},
+  author={Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  journal={Advances in neural information processing systems},
+  volume={30},
+  year={2017}
+}
+
+@article{karpathy2023nanogpt,
+  title = {nanoGPT},
+  author = {Karpathy, Andrej},
+  year = {2023},
+  journal = {URL https://github.com/karpathy/nanoGPT/tree/master},
+  note = {GitHub repository}
+}
+
+@article{kingma2014adam,
+  title={Adam: A method for stochastic optimization},
+  author={Kingma, Diederik P and Ba, Jimmy},
+  journal={arXiv preprint arXiv:1412.6980},
+  year={2014}
+}
+
+@article{ba2016layer,
+  title={Layer normalization},
+  author={Ba, Jimmy Lei and Kiros, Jamie Ryan and Hinton, Geoffrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+
+@Article{Romera-Paredes2023MathematicalDF,
+ author = {B. Romera-Paredes and M. Barekatain and Alexander Novikov and Matej Balog and M. P. Kumar and Emilien Dupont and Francisco J. R. Ruiz and J. Ellenberg and Pengming Wang and Omar Fawzi and Pushmeet Kohli and Alhussein Fawzi and Joshua A. Grochow and Andrea Lodi and Jean-Baptiste Mouret and Talia Ringer and Tao Yu},
+ booktitle = {Nature},
+ journal = {Nature},
+ pages = {468 - 475},
+ title = {Mathematical discoveries from program search with large language models},
+ volume = {625},
+ year = {2023}
+}
+
+
+@Article{Boiko2023AutonomousCR,
+ author = {Daniil A. Boiko and R. MacKnight and Benjamin C Kline and Gabe Gomes},
+ booktitle = {Nature},
+ journal = {Nature},
+ pages = {570 - 578},
+ title = {Autonomous chemical research with large language models},
+ volume = {624},
+ year = {2023}
+}
+
+
+@Article{Yao2022ReActSR,
+ author = {Shunyu Yao and Jeffrey Zhao and Dian Yu and Nan Du and Izhak Shafran and Karthik Narasimhan and Yuan Cao},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {ReAct: Synergizing Reasoning and Acting in Language Models},
+ volume = {abs/2210.03629},
+ year = {2022}
+}
+
+
+@Article{Brown2020LanguageMA,
+ author = {Tom B. Brown and Benjamin Mann and Nick Ryder and Melanie Subbiah and J. Kaplan and Prafulla Dhariwal and Arvind Neelakantan and Pranav Shyam and G. Sastry and Amanda Askell and S. Agarwal and Ariel Herbert-Voss and Gretchen Krueger and T. Henighan and R. Child and A. Ramesh and Daniel M. Ziegler and Jeff Wu and Clemens Winter and Christopher Hesse and Mark Chen and Eric Sigler and Ma-teusz Litwin and Scott Gray and Benjamin Chess and Jack Clark and Christopher Berner and Sam McCandlish and Alec Radford and I. Sutskever and Dario Amodei},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Language Models are Few-Shot Learners},
+ volume = {abs/2005.14165},
+ year = {2020}
+}
+
+
+@Article{Huang2023MLAgentBenchEL,
+ author = {Qian Huang and Jian Vora and Percy Liang and J. Leskovec},
+ booktitle = {International Conference on Machine Learning},
+ pages = {20271-20309},
+ title = {MLAgentBench: Evaluating Language Agents on Machine Learning Experimentation},
+ year = {2023}
+}
+
+
+@Article{Shinn2023ReflexionLA,
+ author = {Noah Shinn and Federico Cassano and Beck Labash and A. Gopinath and Karthik Narasimhan and Shunyu Yao},
+ booktitle = {Neural Information Processing Systems},
+ journal = {Advances in Neural Information Processing Systems 36},
+ title = {Reflexion: language agents with verbal reinforcement learning},
+ year = {2023}
+}
+
+
+@Article{Schmidgall2025AgentLU,
+ author = {Samuel Schmidgall and Yusheng Su and Ze Wang and Ximeng Sun and Jialian Wu and Xiaodong Yu and Jiang Liu and Zicheng Liu and E. Barsoum},
+ booktitle = {Conference on Empirical Methods in Natural Language Processing},
+ pages = {5977-6043},
+ title = {Agent Laboratory: Using LLM Agents as Research Assistants},
+ year = {2025}
+}
+
+
+@Article{White2023NeuralAS,
+ author = {Colin White and Mahmoud Safari and R. Sukthanker and Binxin Ru and T. Elsken and Arber Zela and Debadeepta Dey and Frank Hutter},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Neural Architecture Search: Insights from 1000 Papers},
+ volume = {abs/2301.08727},
+ year = {2023}
+}
+
+
+@Book{Hutter2019AutomatedML,
+ author = {Frank Hutter and Lars Kotthoff and Joaquin Vanschoren},
+ booktitle = {The Springer Series on Challenges in Machine Learning},
+ journal = {Automated Machine Learning},
+ title = {Automated Machine Learning: Methods, Systems, Challenges},
+ year = {2019}
+}
+
+
+@Article{Bran2023AugmentingLL,
+ author = {Andrés M Bran and Sam Cox and Oliver Schilter and Carlo Baldassari and Andrew D. White and P. Schwaller},
+ booktitle = {Nature Machine Intelligence},
+ journal = {Nature Machine Intelligence},
+ pages = {525 - 535},
+ title = {Augmenting large language models with chemistry tools},
+ volume = {6},
+ year = {2023}
+}
+
+
+@Inproceedings{Wu2023AutoGenEN,
+ author = {Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Beibin Li and E. Zhu and Li Jiang and Xiaoyun Zhang and Shaokun Zhang and Jiale Liu and A. Awadallah and Ryen W. White and D. Burger and Chi Wang},
+ title = {AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation},
+ year = {2023}
+}
+
+
+@Article{Udrescu2019AIFA,
+ author = {S. Udrescu and Max Tegmark},
+ booktitle = {Science Advances},
+ journal = {Science Advances},
+ title = {AI Feynman: A physics-inspired method for symbolic regression},
+ volume = {6},
+ year = {2019}
+}
+
+
+@Article{Fawzi2022DiscoveringFM,
+ author = {Alhussein Fawzi and M. Balog and Aja Huang and T. Hubert and B. Romera-Paredes and M. Barekatain and Alexander Novikov and Francisco J. R. Ruiz and Julian Schrittwieser and Grzegorz Swirszcz and David Silver and D. Hassabis and Pushmeet Kohli},
+ booktitle = {Nature},
+ journal = {Nature},
+ pages = {47 - 53},
+ title = {Discovering faster matrix multiplication algorithms with reinforcement learning},
+ volume = {610},
+ year = {2022}
+}
+
+
+@Article{Wei2022ChainOT,
+ author = {Jason Wei and Xuezhi Wang and Dale Schuurmans and Maarten Bosma and Ed H. Chi and F. Xia and Quoc Le and Denny Zhou},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Chain of Thought Prompting Elicits Reasoning in Large Language Models},
+ volume = {abs/2201.11903},
+ year = {2022}
+}
+
+
+@Article{Wang2023VoyagerAO,
+ author = {Guanzhi Wang and Yuqi Xie and Yunfan Jiang and A. Mandlekar and Chaowei Xiao and Yuke Zhu and Linxi (Jim) Fan and Anima Anandkumar},
+ booktitle = {Trans. Mach. Learn. Res.},
+ journal = {ArXiv},
+ title = {Voyager: An Open-Ended Embodied Agent with Large Language Models},
+ volume = {abs/2305.16291},
+ year = {2023}
+}
+
+
+@Article{Schick2023ToolformerLM,
+ author = {Timo Schick and Jane Dwivedi-Yu and Roberto Dessì and R. Raileanu and M. Lomeli and Luke Zettlemoyer and Nicola Cancedda and Thomas Scialom},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Toolformer: Language Models Can Teach Themselves to Use Tools},
+ volume = {abs/2302.04761},
+ year = {2023}
+}
+
+
+@Article{Yao2023TreeOT,
+ author = {Shunyu Yao and Dian Yu and Jeffrey Zhao and Izhak Shafran and T. Griffiths and Yuan Cao and Karthik Narasimhan},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Tree of Thoughts: Deliberate Problem Solving with Large Language Models},
+ volume = {abs/2305.10601},
+ year = {2023}
+}
+
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}

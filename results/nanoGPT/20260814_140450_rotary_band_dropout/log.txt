@@ -1,0 +1,38 @@
+2026-08-14 14:04:50
+*Starting idea: 20260814_140450_rotary_band_dropout*
+2026-08-14 14:04:50
+*Starting Experiments*
+Error during experiments: Codex coder failed with exit code 1: inside this experiment directory:
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_140450_rotary_band_dropout
+
+Editable files:
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_140450_rotary_band_dropout/experiment.py
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_140450_rotary_band_dropout/plot.py
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_140450_rotary_band_dropout/notes.txt
+
+Follow the user's request by editing the relevant files directly. Keep edits focused.
+Do not run long training jobs. Quick syntax checks or tiny inspections are fine.
+If the prompt asks you to finish by saying ALL_COMPLETED, only say it when the
+experiment plan is genuinely complete.
+
+User request:
+Your goal is to implement the following idea: Rotary Band Dropout for Length-Robust Character Transformers.
+The proposed experiment is as follows: Add GPTConfig fields position_encoding, train_seq_len, max_seq_len, rope_base, rope_num_bands, rope_band_dropout_p, rope_consistency_interval, and lambda_rope_max. Set train_seq_len to 256 while allowing max_seq_len values such as 512. Modify GPT.forward so position_encoding='absolute' uses the existing learned wpe path, while position_encoding='rope' disables wpe and applies rotary embeddings to q and k inside CausalSelfAttention. Train every iteration with ordinary next-character cross-entropy. After warmup_iters and every rope_consistency_interval iterations, run one additional forward pass on the same X,Y with one randomly selected contiguous rotary frequency band replaced by identity rotations, and add a small ramped temperature-2 KL loss from detached full-RoPE logits to band-dropped logits. Keep generation unchanged except that RoPE models use rotary positions for the visible context. Extend get_batch and estimate_loss to evaluate validation loss at context lengths 64, 128, 256, 384, and 512, including suffix-only loss for contexts longer than 256. Compare learned absolute positions, absolute positions with max_seq_len=512, plain RoPE, RoPE with band dropout consistency, and a compute-matched extra-forward control across shakespeare_char, enwik8, and text8. Report best 256-token validation loss, short-context robustness, 512-token extrapolation degradation, per-band ablation sensitivity, train-val gap, total train time, and inference tokens per second..
+You are given a total of up to 5 runs to complete the necessary experiments. You do not need to use all 5.
+
+First, plan the list of experiments you would like to run. For example, if you are sweeping over a specific hyperparameter, plan each value you would like to test for each run.
+
+Note that we already provide the vanilla baseline results, so you do not need to re-run it.
+
+For reference, the baseline results are as follows:
+
+{'shakespeare_char': {'final_train_loss_mean': 0.8063469330469767, 'best_val_loss_mean': 1.4675064484278362, 'total_train_time_mean': 180.74195313453674, 'avg_inference_tokens_per_second_mean': 378.57517791315746}, 'enwik8': {'final_train_loss_mean': 0.9353665113449097, 'best_val_loss_mean': 1.005397915840149, 'total_train_time_mean': 1160.2209112644196, 'avg_inference_tokens_per_second_mean': 379.5848228845526}, 'text8': {'final_train_loss_mean': 0.9992859363555908, 'best_val_loss_mean': 0.9796633124351501, 'total_train_time_mean': 1163.0113108158112, 'avg_inference_tokens_per_second_mean': 374.37565057725453}}
+
+After you complete each change, we will run the command `python experiment.py --out_dir=run_i' where i is the run number and evaluate the results.
+YOUR PROPOSED CHANGE MUST USE THIS COMMAND FORMAT, DO NOT ADD ADDITIONAL COMMAND LINE ARGS.
+You can then implement the next thing on your list.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Experiments failed for idea 20260814_140450_rotary_band_dropout
+FINISHED IDEA

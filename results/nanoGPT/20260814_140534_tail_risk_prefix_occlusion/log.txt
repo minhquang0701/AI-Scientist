@@ -1,0 +1,35 @@
+2026-08-14 14:05:34
+*Starting idea: 20260814_140534_tail_risk_prefix_occlusion*
+2026-08-14 14:05:34
+*Starting Experiments*
+Error during experiments: Codex coder failed with exit code 1: gradation clamp(masked_suffix_nll - clean_suffix_nll.detach(), min=0), and add a ramped CVaR-style loss over the worst masked views, using either top-q averaging or a soft logmeanexp tail objective. Keep clean CE dominant and leave generation unchanged by calling forward without input_mask. Extend estimate_loss to report clean validation loss, mean masked validation loss, worst-of-M masked validation loss, CVaR excess degradation, repeated-target versus novel-target loss, previous-occurrence-distance buckets, train-val gap, total train time, and unchanged clean generation tokens per second. Compare the baseline, single-view random prefix masking, average masked-loss training, and tail-risk prefix occlusion across shakespeare_char, enwik8, and text8..
+You are given a total of up to 5 runs to complete the necessary experiments. You do not need to use all 5.
+
+First, plan the list of experiments you would like to run. For example, if you are sweeping over a specific hyperparameter, plan each value you would like to test for each run.
+
+Note that we already provide the vanilla baseline results, so you do not need to re-run it.
+
+For reference, the baseline results are as follows:
+
+{'shakespeare_char': {'final_train_loss_mean': 0.8063469330469767, 'best_val_loss_mean': 1.4675064484278362, 'total_train_time_mean': 180.74195313453674, 'avg_inference_tokens_per_second_mean': 378.57517791315746}, 'enwik8': {'final_train_loss_mean': 0.9353665113449097, 'best_val_loss_mean': 1.005397915840149, 'total_train_time_mean': 1160.2209112644196, 'avg_inference_tokens_per_second_mean': 379.5848228845526}, 'text8': {'final_train_loss_mean': 0.9992859363555908, 'best_val_loss_mean': 0.9796633124351501, 'total_train_time_mean': 1163.0113108158112, 'avg_inference_tokens_per_second_mean': 374.37565057725453}}
+
+After you complete each change, we will run the command `python experiment.py --out_dir=run_i' where i is the run number and evaluate the results.
+YOUR PROPOSED CHANGE MUST USE THIS COMMAND FORMAT, DO NOT ADD ADDITIONAL COMMAND LINE ARGS.
+You can then implement the next thing on your list.
+
+2026-08-14T18:05:35.848352Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+2026-08-14T18:05:36.842598Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+2026-08-14T18:05:37.298600Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 2/5
+2026-08-14T18:05:38.026109Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 3/5
+2026-08-14T18:05:39.024854Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 4/5
+2026-08-14T18:05:40.748748Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+ERROR: Reconnecting... 5/5
+2026-08-14T18:05:44.325918Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 403 Forbidden, url: wss://chatgpt.com/backend-api/codex/responses
+warning: Falling back from WebSockets to HTTPS transport. unexpected status 403 Forbidden: Unknown error, url: wss://chatgpt.com/backend-api/codex/responses, cf-ray: a2b1e3af1d932290-IAD
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Experiments failed for idea 20260814_140534_tail_risk_prefix_occlusion
+FINISHED IDEA

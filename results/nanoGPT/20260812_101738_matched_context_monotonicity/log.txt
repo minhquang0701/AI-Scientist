@@ -1,0 +1,393 @@
+2026-08-12 10:17:38
+*Starting idea: 20260812_101738_matched_context_monotonicity*
+2026-08-12 10:17:38
+*Starting Experiments*
+I planned the 5-run slate:
+
+1. `run_1`: main matched-position monotonicity, interval 8, weight 0.05.
+2. `run_2`: stronger variant, interval 4, weight 0.10.
+3. `run_3`: lighter variant, interval 8, weight 0.025, margin 0.01.
+4. `run_4`: compute-matched extra-forward control, zero auxiliary penalty.
+5. `run_5`: context-length dropout control.
+
+I could not edit the files because every filesystem operation is failing before it reaches the shell or patcher:
+
+`bwrap: Creating new namespace failed: No space left on device`
+
+No files were changed. I used the upstream SakanaAI nanoGPT template as a structural reference: https://raw.githubusercontent.com/SakanaAI/AI-Scientist/main/templates/nanoGPT/experiment.py.
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+
+I could not complete the requested edits because the execution sandbox cannot start: every shell command and `apply_patch` attempt fails with `bwrap: Creating new namespace failed: No space left on device`.
+
+No files were modified, and the experiment is not complete.
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+
+Blocked by the execution sandbox. Even `true`, file reads, and `apply_patch` all failed with:
+
+```text
+bwrap: Creating new namespace failed: No space left on device
+```
+
+No files were changed, so `notes.txt` was not updated and `experiment.py` was not prepared for `run_3`. I’m not saying `ALL_COMPLETED` because the requested experiment step is not complete.
+
+I only used the public AI-Scientist NanoGPT template for structural context: https://raw.githubusercontent.com/SakanaAI/AI-Scientist/main/templates/nanoGPT/experiment.py
+/n/fs/vision-mix/qd0037/conda_envs/ai_scientist/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/n/fs/vision-mix/qd0037/conda_envs/ai_scientist/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+
+2026-08-12 13:12:04
+*Starting Writeup*
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.2 seconds after 1 tries calling function search_for_papers at 13:49:50
+Response Status Code: 200
+Response Content: {"total": 25, "offset": 0, "next": 10, "data": [{"paperId": "90abbc2cf38462b954ae1b772fac9532e2ccd8b0", "title": "Language Models are Few-Shot Learners", "venue": "Neural Information Processing Systems", "year": 2020, "citationCount": 61951, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2005.14165, which is subject to the license by the author or copyright owner provided with this content. Please go to th
+Response Status Code: 200
+Response Content: {"total": 11, "offset": 0, "next": 10, "data": [{"paperId": "87acd2fb4e267bfe20e677c5cb48e934a287fc02", "title": "Enhancing LLM-Based Text Compression with Context-Aware Frequency Adaptation", "venue": "European Conference on Artificial Intelligence", "year": 2025, "citationCount": 2, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/ECAI65401.2025.11095536?email=<INSERT_YOUR_EMAIL> or https://
+Error: Codex headless failed with exit code 1: rary},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+
+@Article{Brown2020LanguageMA,
+ author = {Tom B. Brown and Benjamin Mann and Nick Ryder and Melanie Subbiah and J. Kaplan and Prafulla Dhariwal and Arvind Neelakantan and Pranav Shyam and G. Sastry and Amanda Askell and S. Agarwal and Ariel Herbert-Voss and Gretchen Krueger and T. Henighan and R. Child and A. Ramesh and Daniel M. Ziegler and Jeff Wu and Clemens Winter and Christopher Hesse and Mark Chen and Eric Sigler and Ma-teusz Litwin and Scott Gray and Benjamin Chess and Jack Clark and Christopher Berner and Sam McCandlish and Alec Radford and I. Sutskever and Dario Amodei},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Language Models are Few-Shot Learners},
+ volume = {abs/2005.14165},
+ year = {2020}
+}
+
+
+@Inproceedings{Bellard2019LosslessDC,
+ author = {Fabrice Bellard},
+ title = {Lossless Data Compression with Neural Networks},
+ year = {2019}
+}
+
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 1.0 seconds after 1 tries calling function search_for_papers at 13:54:47
+Response Status Code: 200
+Response Content: {"total": 3, "offset": 0, "data": [{"paperId": "fd23c9168418324e81881365f297fb6a1caa3a07", "title": "Arithmetic coding for data compression", "venue": "CACM", "year": 1987, "citationCount": 3534, "openAccessPdf": {"url": "https://dl.acm.org/doi/pdf/10.1145/214762.214771", "status": "BRONZE", "license": null, "disclaimer": "Notice: The following paper fields have been elided by the publisher: {'abstract'}. Paper or abstract available at https://api.unpaywall.org/v2/10.1145/214762.214771?email=<IN
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.7 seconds after 1 tries calling function search_for_papers at 13:56:31
+Response Status Code: 200
+Response Content: {"total": 2, "offset": 0, "data": [{"paperId": "87acd2fb4e267bfe20e677c5cb48e934a287fc02", "title": "Enhancing LLM-Based Text Compression with Context-Aware Frequency Adaptation", "venue": "European Conference on Artificial Intelligence", "year": 2025, "citationCount": 2, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/ECAI65401.2025.11095536?email=<INSERT_YOUR_EMAIL> or https://doi.org/10.11
+Do not add any.
+Response Status Code: 200
+Response Content: {"total": 278, "offset": 0, "next": 10, "data": [{"paperId": "88e694ad7bc5f52be077de9ca55fec219cc1c378", "title": "Implementation and Comparison of Semi-Non-Prefix Huffman Coding in Text Compression", "venue": "2025 International Conference on Emerging Technologies and Innovation for Sustainability (EmergIN)", "year": 2025, "citationCount": 0, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/E
+Response Status Code: 200
+Response Content: {"total": 2, "offset": 0, "data": [{"paperId": "79d7c5fc1c0ed954395a408f193c8863799535ba", "title": "Lossless Data Compression with Neural Networks", "venue": "", "year": 2019, "citationCount": 46, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: The following paper fields have been elided by the publisher: {'abstract'}. Paper or abstract available at https://bellard.org/nncp/nncp.pdf, which is subject to the license by the author or copyright owner provided w
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.5 seconds after 1 tries calling function search_for_papers at 14:02:20
+Response Status Code: 200
+Response Content: {"total": 171, "offset": 0, "next": 10, "data": [{"paperId": "a9434d88a0f1d855c758186dec932c31ca7d66d3", "title": "Abstraction and Reasoning Abilities in Artificial Intelligence Applied to Solving the ARC Prize: A Systematic Literature Review", "venue": "International Conference on AI Research", "year": 2025, "citationCount": 2, "openAccessPdf": {"url": "https://papers.academic-conferences.org/index.php/icair/article/download/4311/4007", "status": "GOLD", "license": null, "disclaimer": "Notice: 
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.2 seconds after 1 tries calling function search_for_papers at 14:05:13
+Response Status Code: 200
+Response Content: {"total": 2, "offset": 0, "data": [{"paperId": "21091f8133ab034baacb92fdb958e14989eb427f", "title": "Language Modeling Is Compression", "venue": "International Conference on Learning Representations", "year": 2023, "citationCount": 284, "openAccessPdf": {"url": "https://arxiv.org/pdf/2309.10668", "status": "CLOSED", "license": null, "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2309.10668, which is subject to the license by the author or copyright owner provided wit
+Response Status Code: 200
+Response Content: {"total": 2, "offset": 0, "data": [{"paperId": "79d7c5fc1c0ed954395a408f193c8863799535ba", "title": "Lossless Data Compression with Neural Networks", "venue": "", "year": 2019, "citationCount": 46, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: The following paper fields have been elided by the publisher: {'abstract'}. Paper or abstract available at https://bellard.org/nncp/nncp.pdf, which is subject to the license by the author or copyright owner provided w
+Error: Codex headless failed with exit code 1: N will be automatically parsed, so ensure the format is precise.
+
+## assistant
+THOUGHT:
+The draft already cites core Transformer/GPT optimization work and several compression-as-language-modeling papers, but it still lacks a foundational citation for the enwik8/Hutter Prize benchmark context. Since the results figures are explicitly on enwik8, the related work or experimental setup should cite the benchmark’s origin and motivation.
+
+RESPONSE:
+```json
+{
+  "Description": "Add a citation in the Experimental Setup section where the enwik8 dataset is introduced. Proposed text: \"We evaluate on enwik8, a widely used 100MB Wikipedia-derived benchmark introduced in the context of the Hutter Prize for lossless compression of human knowledge, which has become a standard testbed for character-level language modeling and compression systems.\" Cite the Hutter Prize / enwik8 benchmark paper at the end of this sentence.",
+  "Query": "Hutter Prize lossless compression human knowledge enwik8"
+}
+```
+
+# Current User Message
+Search has recovered the following articles:
+
+0: Lossless Data Compression with Neural Networks. [{'authorId': '1967837', 'name': 'Fabrice Bellard'}]. , 2019.
+Abstract: None
+
+1: Enhancing LLM-Based Text Compression with Context-Aware Frequency Adaptation. [{'authorId': '2342698875', 'name': 'Rishika Kinger'}, {'authorId': '2375067516', 'name': 'R. Murali'}, {'authorId': '2303290546', 'name': 'Pranav Krishna'}, {'authorId': '2375065984', 'name': 'Meghana Goru'}, {'authorId': '1789270', 'name': 'S. R. Upadhyaya'}]. European Conference on Artificial Intelligence, 2025.
+Abstract: This paper introduces a novel approach to text compression that integrates a large language model with a context-aware frequency adaptation mechanism. Traditional large language model based compression methods rely solely on model predictions to encode text efficiently. The approach extends this method by constructing context specific frequency tables for each processing window, which are then used to bias the model's logit distribution before encoding token ranks via arithmetic coding. The method is evaluated on standard compression benchmarks enwik8 and enwik9 from the Hutter Prize and on a custom dataset compiled from Project Gutenberg. Using the Llama-3.2-1B model as the base model alongside the zlib compression library for final encoding, the frequency scaled approach consistently outperforms both baseline large language model based compression techniques and traditional compressors. The method achieves compression ratios of 6.4385 compared to 5.8271 for the unscaled large language model approach and 4.0217 for the Lempel–Ziv–Markov chain algorithm on enwik8, 6.7866 versus 6.0632 and 4.6867 on enwik9, and 5.1762 versus 4.8124 and 3.7802 on the Gutenberg dataset. These findings underscore the potential of augmenting large language models with local statistical adaptations to enhance lossless text compression.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the search results and identify which citation best fits your paper and the location is to be added at.
+If none are appropriate, add "Do not add any" to your thoughts.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Selected": A list of the indices of the selected papers to be cited, e.g. "[0, 1]". Can be "[]" if no papers are selected. This must be a string.
+- "Description": Update the previous description of the required edit if needed. Ensure that any cites precisely match the name in the bibtex!!!
+
+Do not select papers that are already in the `references.bib` file at the top of the draft, or if the same citation exists under a different name.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.5 seconds after 1 tries calling function search_for_papers at 14:09:19
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.6 seconds after 2 tries calling function search_for_papers at 14:09:23
+Response Status Code: 200
+Response Content: {"total": 2, "offset": 0, "data": [{"paperId": "79d7c5fc1c0ed954395a408f193c8863799535ba", "title": "Lossless Data Compression with Neural Networks", "venue": "", "year": 2019, "citationCount": 46, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: The following paper fields have been elided by the publisher: {'abstract'}. Paper or abstract available at https://bellard.org/nncp/nncp.pdf, which is subject to the license by the author or copyright owner provided w
+Do not add any.
+Response Status Code: 200
+Response Content: {"total": 249, "offset": 0, "next": 10, "data": [{"paperId": "f52010c82198c11ade14e714c63fa860f9fa18c0", "title": "A Mathematical Theory of Communication (1948)", "venue": "", "year": 2021, "citationCount": 21, "openAccessPdf": {"url": "", "status": "CLOSED", "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.7551/MITPRESS/12274.003.0014?email=<INSERT_YOUR_EMAIL> or https://doi.org/10.7551/MITPRESS/12274.003.0014, which is subject to the licens
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.5 seconds after 1 tries calling function search_for_papers at 14:12:00
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 1.7 seconds after 2 tries calling function search_for_papers at 14:12:04
+Response Status Code: 200
+Response Content: {"total": 5, "offset": 0, "data": [{"paperId": "660d7a2520875c46c62e455970ad2c2036ff2f3a", "title": "Unbounded length contexts for PPM", "venue": "Proceedings DCC '95 Data Compression Conference", "year": 1995, "citationCount": 395, "openAccessPdf": {"url": "", "status": "CLOSED", "license": null, "disclaimer": "Notice: The following paper fields have been elided by the publisher: {'abstract'}. Paper or abstract available at https://api.unpaywall.org/v2/10.1109/DCC.1995.515495?email=<INSERT_YOUR
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.0 seconds after 1 tries calling function search_for_papers at 14:14:14
+Response Status Code: 200
+Response Content: {"total": 0, "offset": 0}
+
+No papers found.
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.1 seconds after 1 tries calling function search_for_papers at 14:14:45
+Response Status Code: 200
+Response Content: {"total": 6, "offset": 0, "data": [{"paperId": "87acd2fb4e267bfe20e677c5cb48e934a287fc02", "title": "Enhancing LLM-Based Text Compression with Context-Aware Frequency Adaptation", "venue": "European Conference on Artificial Intelligence", "year": 2025, "citationCount": 2, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/ECAI65401.2025.11095536?email=<INSERT_YOUR_EMAIL> or https://doi.org/10.11
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.6 seconds after 1 tries calling function search_for_papers at 14:17:04
+Response Status Code: 200
+Response Content: {"total": 3, "offset": 0, "data": [{"paperId": "87acd2fb4e267bfe20e677c5cb48e934a287fc02", "title": "Enhancing LLM-Based Text Compression with Context-Aware Frequency Adaptation", "venue": "European Conference on Artificial Intelligence", "year": 2025, "citationCount": 2, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/ECAI65401.2025.11095536?email=<INSERT_YOUR_EMAIL> or https://doi.org/10.11
+Do not add any.
+Response Status Code: 200
+Response Content: {"total": 2, "offset": 0, "data": [{"paperId": "50e2733d2a8a9b3929bda278d382c37711f3fa8e", "title": "Data Compression Using Adaptive Coding and Partial String Matching", "venue": "IEEE Transactions on Communications", "year": 1984, "citationCount": 1424, "openAccessPdf": {"url": "", "status": "CLOSED", "license": null, "disclaimer": "Notice: The following paper fields have been elided by the publisher: {'abstract'}. Paper or abstract available at https://api.unpaywall.org/v2/10.1109/TCOM.1984.10
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.9 seconds after 1 tries calling function search_for_papers at 14:20:14
+Response Status Code: 200
+Response Content: {"total": 278, "offset": 0, "next": 10, "data": [{"paperId": "88e694ad7bc5f52be077de9ca55fec219cc1c378", "title": "Implementation and Comparison of Semi-Non-Prefix Huffman Coding in Text Compression", "venue": "2025 International Conference on Emerging Technologies and Innovation for Sustainability (EmergIN)", "year": 2025, "citationCount": 0, "openAccessPdf": {"url": "", "status": null, "license": null, "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/E
+Do not add any.
+Response Status Code: 200
+Response Content: {"total": 9, "offset": 0, "data": [{"paperId": "b9de9599d7241459db9213b5cdd7059696f5ef8d", "title": "Character-Level Language Modeling with Deeper Self-Attention", "venue": "AAAI Conference on Artificial Intelligence", "year": 2018, "citationCount": 422, "openAccessPdf": {"url": "https://doi.org/10.1609/aaai.v33i01.33013159", "status": "GOLD", "license": null, "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/1808.04444, which is subject to the license by the author or 
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 0.5 seconds after 1 tries calling function search_for_papers at 14:23:32
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 1.6 seconds after 2 tries calling function search_for_papers at 14:23:36
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 1.8 seconds after 3 tries calling function search_for_papers at 14:23:40
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 3.3 seconds after 4 tries calling function search_for_papers at 14:23:44
+Response Status Code: 429
+Response Content: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+Backing off 4.3 seconds after 5 tries calling function search_for_papers at 14:23:48
+Response Status Code: 200
+Response Content: {"total": 3, "offset": 0, "data": [{"paperId": "c4744a7c2bb298e4a52289a1e085c71cc3d37bc6", "title": "Transformer-XL: Attentive Language Models beyond a Fixed-Length Context", "venue": "Annual Meeting of the Association for Computational Linguistics", "year": 2019, "citationCount": 4454, "openAccessPdf": {"url": "https://www.aclweb.org/anthology/P19-1285.pdf", "status": "HYBRID", "license": "CCBY", "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/1901.02860, which is su
+Failed to perform writeup: Codex coder failed with exit code 1: OpenAI Codex v0.147.0-alpha.6.5
+--------
+workdir: /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019ff737-d8ce-7493-a5b7-5b9f0de9f2e8
+--------
+user
+You are the code-editing backend for AI-Scientist v1.
+Work inside this experiment directory:
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity
+
+Editable files:
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/experiment.py
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/latex/template.tex
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260812_101738_matched_context_monotonicity/notes.txt
+
+Follow the user's request by editing the relevant files directly. Keep edits focused.
+Do not run long training jobs. Quick syntax checks or tiny inspections are fine.
+If the prompt asks you to finish by saying ALL_COMPLETED, only say it when the
+experiment plan is genuinely complete.
+
+User request:
+The following citations have just been added to the end of the `references.bib` file definition at the top of the file:
+"""
+@Article{Dai2019TransformerXLAL,
+ author = {Zihang Dai and Zhilin Yang and Yiming Yang and J. Carbonell and Quoc V. Le and R. Salakhutdinov},
+ booktitle = {Annual Meeting of the Association for Computational Linguistics},
+ journal = {ArXiv},
+ title = {Transformer-XL: Attentive Language Models beyond a Fixed-Length Context},
+ volume = {abs/1901.02860},
+ year = {2019}
+}
+
+"""
+You do not need to add them yourself.
+ABSOLUTELY DO NOT ADD IT AGAIN!!!
+
+Make the proposed change to the draft incorporating these new cites:
+Add the selected Transformer-XL citation in the Related Work section when discussing long-context neural language models for character-level compression benchmarks. Proposed text: "Long-context Transformer variants such as Transformer-XL extend self-attention with segment-level recurrence to model dependencies beyond a fixed window and have shown strong results on character-level benchmarks including enwik8 \citep{Dai2019TransformerXLAL}."
+
+Use your judgment for whether these should be cited anywhere else.
+Make sure that any citation precisely matches the name in `references.bib`. Change its name to the correct name in the bibtex if needed.
+Ensure the citation is well-integrated into the text.
+ You must use \cite or \citet to reference papers, do not manually type out author names.
+
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Reconnecting... 5/5
+warning: Falling back from WebSockets to HTTPS transport. stream disconnected before completion: An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists. Please include the request ID 4bb48260-2f1f-4836-9988-dba579c8baa4 in your message.
+ERROR: Reconnecting... 1/5
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Reconnecting... 5/5
+ERROR: stream disconnected before completion: An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists. Please include the request ID 9912f83b-4240-4c23-a04b-dffce3807fe8 in your message.
+ERROR: stream disconnected before completion: An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists. Please include the request ID 9912f83b-4240-4c23-a04b-dffce3807fe8 in your message.
+FINISHED IDEA

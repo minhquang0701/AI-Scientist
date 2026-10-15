@@ -1,0 +1,920 @@
+[
+    {
+        "Name": "adaptive_block_size",
+        "Title": "Adaptive Block Size: Dynamic Context Window Adjustment for Efficient Training",
+        "Experiment": "Modify the model to dynamically adjust its block size during training, starting with a smaller block size and gradually increasing it. This could potentially lead to faster initial training and better long-range dependency learning.",
+        "Interestingness": 6,
+        "Feasibility": 4,
+        "Novelty": 4,
+        "novel": false
+    },
+    {
+        "Name": "layerwise_learning_rates",
+        "Title": "Layer-wise Learning Rate Adaptation: Optimizing Training Dynamics in Transformer Models",
+        "Experiment": "Implement layer-wise learning rates, where each transformer layer has its own learning rate. Modify the configure_optimizers function to assign different learning rates to different layers, with deeper layers having lower learning rates. Compare the training dynamics, convergence speed, and final performance with the baseline model.",
+        "Interestingness": 4,
+        "Feasibility": 6,
+        "Novelty": 2,
+        "novel": false
+    },
+    {
+        "Name": "auxiliary_future_heads",
+        "Title": "Auxiliary Future Prediction Heads for Denser Autoregressive Supervision",
+        "Experiment": "Add optional horizon-specific auxiliary linear heads to GPT for predicting future characters at offsets 2, 4, and 8 from each hidden state. In GPT.forward, keep the standard lm_head and next-character cross-entropy unchanged, then derive each auxiliary target by shifting the existing targets tensor left by offset-1 positions and filling invalid tail positions with -1 for ignore_index. Train with loss = next_loss + alpha * mean(aux_losses), using alpha=0.25 as the main setting and alpha=0.1 as a small ablation. Generation remains unchanged and uses only the standard lm_head. Update estimate_loss to report comparable next-character train/validation loss separately from the total auxiliary training objective. Compare against baseline using best next-character validation loss, convergence speed, total training time, generated samples, and the small parameter overhead of the auxiliary heads across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "warm_ema_self_distillation",
+        "Title": "Warm-Started EMA Self-Distillation for Character Language Model Generalization",
+        "Experiment": "Add online self-distillation from an exponential-moving-average teacher model. After initializing GPT, create ema_model as a deepcopy of the uncompiled student, freeze its parameters, and keep it in eval mode. During training, compute the normal next-character cross-entropy loss as usual. After warmup_iters, also run ema_model on the same batch under torch.no_grad() and add a temperature-scaled KL term between student and teacher next-token distributions, averaged over batch and sequence positions: total_loss = ce_loss + alpha_t * temperature^2 * KL(log_softmax(student_logits / temperature), softmax(teacher_logits / temperature)). Ramp alpha_t linearly from 0 to alpha over 1000 iterations after warmup. After each optimizer step, update the teacher with ema_param = ema_decay * ema_param + (1 - ema_decay) * student_param, using the raw uncompiled student parameters if torch.compile is enabled. Keep validation, generation, and final reporting unchanged, using only the standard lm_head and next-character loss. Use one main setting with ema_decay=0.999, temperature=2.0, and alpha=0.15, then compare best validation loss, convergence speed, total train time, inference speed, and generated samples across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 7,
+        "Feasibility": 7,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "suffix_consistency_distillation",
+        "Title": "Suffix Consistency Distillation for Context-Robust Autoregressive Language Models",
+        "Experiment": "Add a same-model consistency regularizer between full-context and shortened-context predictions. In the training loop, keep the standard cross-entropy loss on the full 256-token batch X,Y. Also create a fixed shortened view using the final 128 tokens, X_short = X[:, -128:] and Y_short = Y[:, -128:], and run a second forward pass. Align short-context logits with full-context logits from the same suffix positions, detach the full-context logits, and add a temperature-scaled KL loss between the two distributions after ignoring an initial burn-in of 16 positions in the shortened view. Use total_loss = ce_loss + alpha_t * temperature^2 * KL, with alpha_t linearly ramped to alpha during warmup. Test alpha values such as 0.05 and 0.1 with temperature 2.0. Keep validation reporting as ordinary next-character loss on full 256-token contexts for comparability, and additionally evaluate validation loss using shorter context lengths such as 64 and 128 to measure context robustness. Compare best validation loss, convergence speed, training time overhead, inference speed, and generated samples across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "gated_causal_conv_mixer",
+        "Title": "Gated Causal Convolutional Mixing for Local Inductive Bias in Small Autoregressive Transformers",
+        "Experiment": "Add a lightweight gated causal convolution branch to Transformer blocks. Implement a CausalConvMixer module that applies left-padded depthwise Conv1d over the sequence dimension, GELU, pointwise Linear projection back to n_embd, and dropout. In Block.__init__, add ln_conv, conv_mixer, and a learnable scalar conv_gate initialized to a small value such as 0.05. In Block.forward, insert an additional residual path after attention and before the MLP: x = x + conv_gate * conv_mixer(ln_conv(x)). Keep the standard next-character cross-entropy loss, validation, and generation unchanged. Compare the baseline to two variants: gated convolution in every layer and gated convolution only in the lower half of layers, using kernel size 7 as the main setting. Report best validation loss, convergence speed, total training time, inference tokens per second, and parameter overhead across shakespeare_char, enwik8, and text8. The hypothesis is that explicit local causal mixing improves sample efficiency and validation loss for character-level language modeling while preserving the Transformer's ability to model longer-range dependencies.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "bandpass_token_weighting",
+        "Title": "Band-Pass Token Difficulty Weighting for Learnable Autoregressive Supervision",
+        "Experiment": "Modify GPT.forward to optionally return per-token cross-entropy losses by using F.cross_entropy(..., reduction='none') and reshaping the result to batch-by-time. In the training loop, after warmup_iters, compute detached per-token losses and use batch quantiles to identify easy, moderate, and extreme-loss positions. Define weights that downweight losses below the median, upweight losses between the median and 90th percentile, and avoid further upweighting the hardest tail, for example w_easy=0.5, w_mid=1.5, and w_hard=1.0, then normalize weights to mean 1 per batch. Use mean(w * token_loss) as the training objective. Keep estimate_loss, validation, generation, and final reporting based on ordinary unweighted next-character cross-entropy for comparability. Compare against the baseline and a monotonic bounded weighting ablation across shakespeare_char, enwik8, and text8 using best validation loss, convergence speed, total training time, inference tokens per second, and generated samples.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "masked_context_denoising",
+        "Title": "Masked Context Denoising for Robust Autoregressive Character Models",
+        "Experiment": "Add stochastic context corruption during training only. Implement corrupt_context(X, vocab_size, corruption_prob) that clones X and randomly replaces selected input tokens with random valid token IDs from the existing vocabulary, returning both the corrupted X and a boolean corruption mask. Modify GPT.forward to optionally return per-token cross-entropy losses using reduction='none', so the training loop can mask out loss terms at positions where the corresponding input token was corrupted while still allowing corrupted earlier prefix tokens to influence later predictions. Ramp corruption_prob from 0 after warmup_iters to values such as 0.02, 0.05, and 0.10. Keep estimate_loss, clean validation, final reporting, and generation unchanged for comparability. Add a robustness evaluation that corrupts validation inputs at fixed rates and reports loss only on positions whose current input token was not corrupted. Compare clean best validation loss, corrupted-context validation loss, convergence speed, total train time, inference tokens per second, and generated samples across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "alibi_position_bias",
+        "Title": "ALiBi Positional Biases for Robust Small Character Transformers",
+        "Experiment": "Add an optional ALiBi positional-bias mode to the Transformer. Extend GPTConfig with position_encoding choices such as 'absolute', 'alibi', and 'absolute_alibi'. In CausalSelfAttention, add a force_manual_attention flag and use the existing non-flash attention path for all compared variants. For ALiBi variants, construct per-head causal distance biases using standard ALiBi slopes and add them to the attention logits before softmax. In GPT.forward, use learned position embeddings only for 'absolute' and 'absolute_alibi', and omit them for 'alibi'. Keep the standard next-character cross-entropy objective, optimizer, validation, and generation unchanged. Compare absolute embeddings, ALiBi-only, and absolute+ALiBi across shakespeare_char, enwik8, and text8 under the same attention implementation. Report best validation loss at the normal 256-token context, convergence speed, total train time, inference tokens per second, parameter count, and additional validation losses when batches are cropped to shorter contexts such as 64 and 128 tokens.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 4,
+        "novel": false
+    },
+    {
+        "Name": "tied_confident_exits",
+        "Title": "Tied Confidence-Based Early Exits for Compute-Adaptive Autoregressive Transformers",
+        "Experiment": "Modify GPTConfig to add exit_layers and exit_loss_weight. In GPT.__init__, create a small LayerNorm for each selected intermediate exit layer, for example layers 2 and 4 in the 6-layer model, but do not add separate vocabulary heads. In GPT.forward, store hidden states after selected Transformer blocks and compute auxiliary next-character cross-entropy by applying the corresponding exit LayerNorm followed by the existing tied lm_head. Train with total_loss = final_loss + exit_loss_weight * mean(exit_losses), while keeping final_loss separately available for comparable validation. Update estimate_loss to report full-depth train/validation loss and fixed-exit validation losses. Add evaluation modes for fixed exits at layer 2 and layer 4, plus a simple confidence-based generation mode that stops at the earliest exit whose final-token max probability exceeds a threshold, otherwise using the full model. Report validation loss, generated samples, tokens per second, and average layers used for layer-2, layer-4, confidence-exit, and full-depth inference. Compare against the baseline across shakespeare_char, enwik8, and text8. Main setting: exit_layers=[2,4], exit_loss_weight=0.2, with a small ablation at 0.1.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "pooled_prefix_memory",
+        "Title": "Pooled Prefix Memory Tokens for Efficient Long-Context Autoregressive Modeling",
+        "Experiment": "Add an optional compressed-prefix memory mechanism to GPT. Modify get_batch to sample prefix_len + block_size + 1 contiguous tokens: prefix_idx contains the first prefix_len tokens, X contains the next block_size tokens, and Y is the usual one-step-shifted target for X. Add a PrefixCompressor module that reuses the token embedding table, divides prefix_idx into memory_slots contiguous chunks, mean-pools each chunk, applies a small projection plus learned slot embeddings, and returns memory token embeddings. Extend GPTConfig with prefix_len, memory_slots, and prefix_dropout. Increase the model's positional capacity to block_size + memory_slots when memory is enabled. In GPT.forward, prepend compressed memory embeddings before normal token embeddings and compute cross-entropy only on the suffix token positions. With probability prefix_dropout during training, replace compressed prefix memory with learned null memory tokens so the model remains usable when no prefix is available. Keep generation unchanged except that forward passes use null memory unless prefix_idx is explicitly provided. Compare the baseline 256-token GPT against memory models with prefix_len=256 and memory_slots in {8, 16, 32}. Report best validation loss with prefix enabled, validation loss with null memory, convergence speed, training-time overhead, inference tokens per second, parameter overhead, and generated samples across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "position_shift_augmentation",
+        "Title": "Position Shift Augmentation for Translation-Robust Character Transformers",
+        "Experiment": "Extend GPTConfig with max_position_offset and allocate the learned position embedding table with size block_size + max_position_offset while keeping the causal context length block_size unchanged. In GPT.forward, during training sample a random integer offset in [0, max_position_offset] and use positions offset:offset+t; during validation and generation use offset 0 for clean comparability. Add an optional forward argument position_offset so estimate_loss can run validation probes at fixed offsets such as 0, 16, 32, and 64. Compare the baseline against variants with max_position_offset values such as 32 and 64. Report best clean validation loss, shifted-position validation losses, convergence speed, total training time, inference tokens per second, parameter overhead, and generated samples across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 7,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "self_recovery_training",
+        "Title": "Self-Recovery Training for Exposure-Bias-Robust Character Language Models",
+        "Experiment": "Add a training-only self-recovery auxiliary objective. In the training loop, compute the standard clean forward pass on X,Y and keep its cross-entropy as the primary loss. After warmup_iters, use the clean logits under torch.no_grad() to produce one-step model predictions for each position, using multinomial sampling at temperature 1.0 as the main setting and argmax as an ablation. Construct X_self by copying X and replacing a small ramped fraction of X[:, 1:] with predictions from logits[:, :-1], so the model conditions on its own plausible previous-token mistakes while targets Y remain unchanged. Run a second forward pass on X_self,Y and train with total_loss = clean_loss + alpha_t * self_loss, where alpha_t ramps from 0 to alpha over 1000 iterations after warmup. Test alpha values such as 0.1 and 0.25 with max replacement probabilities 0.05 and 0.10. Keep normal estimate_loss, clean validation, generation, and final reporting unchanged for comparability. Add a self-conditioned validation probe that applies the same replacement procedure without gradients and reports recovery loss. Compare best clean validation loss, self-conditioned validation loss, convergence speed, total train time, inference tokens per second, and generated samples across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "domain_conditioned_multicorpus_lm",
+        "Title": "Domain-Conditioned Multi-Corpus Character Language Modeling",
+        "Experiment": "Add a multi_dataset training mode that jointly trains on shakespeare_char, enwik8, and text8. Build a global character vocabulary from the union of each dataset's meta.pkl vocabulary, and create per-dataset local-id to global-id remapping tensors used inside get_batch. Extend GPTConfig with n_domains and use_domain_embedding. In GPT.__init__, add a learned domain embedding table with one vector per dataset when enabled. In GPT.forward, accept domain_id and add the corresponding domain embedding to token embeddings before dropout. Train one shared model by sampling one dataset uniformly each iteration, remapping its batch to the global vocabulary, and passing the dataset domain_id. Evaluate validation loss separately for each dataset using its domain_id. Compare three settings: the original separate per-dataset models, a shared model without domain embeddings, and a shared model with domain embeddings. Report per-dataset best validation loss, macro-average validation loss, convergence speed, total training time, inference tokens per second, generated samples conditioned on each domain, and total parameter count relative to training three separate models.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "multiscale_attention_horizons",
+        "Title": "Multiscale Attention Horizons for Context-Robust Autoregressive Transformers",
+        "Experiment": "Add optional horizon-limited causal attention to CausalSelfAttention. Extend GPTConfig with attention_horizon_choices and attention_horizon_training. In GPT.forward, when training and horizon training is enabled, sample one horizon per forward pass from choices such as [64, 128, 256], then pass it through Block.forward into CausalSelfAttention.forward. The attention mask should remain causal but additionally prevent each token from attending to keys more than horizon positions in the past. Use horizon 256 as the full-context case, so the model still frequently trains with the original context length. Keep the standard next-character cross-entropy objective, optimizer, generation, and clean validation unchanged. Add validation probes that run with fixed horizons 64, 128, and 256 to measure context robustness. Compare against the baseline using best full-context validation loss, short-horizon validation loss, convergence speed, total training time, inference tokens per second, and generated samples across shakespeare_char, enwik8, and text8. Main setting: attention_horizon_choices=[64,128,256], with an ablation [32,64,128,256].",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "recurrent_depth_sharing",
+        "Title": "Recurrent Depth Sharing for Parameter-Efficient Character Transformers",
+        "Experiment": "Extend GPTConfig with depth_sharing choices 'none', 'full', and 'cyclic', plus num_shared_blocks and use_depth_embeddings. In GPT.__init__, keep the current independent ModuleList for 'none'. For 'full', create one Block and reuse it for all n_layer applications. For 'cyclic', create num_shared_blocks Blocks and reuse them cyclically across the n_layer depth steps, for example two shared blocks over six applications. If use_depth_embeddings is enabled, add a learned depth embedding to the hidden state before each block application so shared blocks can condition on the recurrence step. Keep the standard next-character cross-entropy objective, optimizer, validation, and generation unchanged. Compare the untied 6-layer baseline against full sharing and 2-block cyclic sharing, with and without depth embeddings as a small ablation. Report best validation loss, convergence speed, total train time, inference tokens per second, generated samples, parameter count, and validation loss per million parameters across shakespeare_char, enwik8, and text8. The hypothesis is that recurrent depth sharing improves parameter efficiency and regularization while preserving much of the benefit of Transformer depth.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "detached_prefix_memory",
+        "Title": "Detached Prefix Memory for Long-Context Character Language Modeling",
+        "Experiment": "Add an optional detached hidden-state memory mechanism. Extend GPTConfig with use_prefix_memory and memory_len. Modify get_batch to optionally sample prefix_len + block_size + 1 contiguous tokens, returning prefix_idx, X, and Y, where X and Y remain the ordinary suffix training block. Modify GPT.forward to support two modes: a memory-building no-gradient prefix pass that returns the last memory_len hidden states from each Transformer layer, and a normal suffix pass that accepts these per-layer memories. Modify CausalSelfAttention.forward to concatenate each layer's memory states to current keys and values, while queries are only current suffix tokens and the causal mask allows attending to all memory positions plus previous suffix positions. Train with the standard next-character cross-entropy only on suffix tokens. Compare baseline training against prefix-memory variants with memory_len values such as 64, 128, and 256. Report clean validation loss with memory enabled and disabled, convergence speed, total train time, inference tokens per second, generated samples, and parameter overhead across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "discounted_future_distribution",
+        "Title": "Distance-Discounted Future Distribution Prediction for Autoregressive Representation Learning",
+        "Experiment": "Add a lightweight auxiliary objective that asks each hidden state to predict a distance-weighted distribution of characters appearing in its near future. In GPT.__init__, add an optional future_window_head = nn.Linear(n_embd, vocab_size, bias=False). In GPT.forward, keep the standard tied lm_head and next-character cross-entropy unchanged, but when targets are provided and the auxiliary option is enabled, also compute aux_logits = future_window_head(x). For each position, build a soft target distribution from targets[:, t:t+W] using weights gamma^k for future offsets k, normalizing over valid positions; use W=16 and gamma=0.9 as the main setting. Compute auxiliary loss as soft cross-entropy between log_softmax(aux_logits) and this discounted future distribution. Train with total_loss = next_loss + alpha * future_distribution_loss, using alpha=0.1 as the main setting and small ablations alpha=0.05, W in {8, 32}, plus a flat unweighted-window variant. Keep estimate_loss, validation, final reporting, and generation based on the ordinary next-character lm_head for comparability. Compare against the baseline across shakespeare_char, enwik8, and text8 using best validation loss, convergence speed, total training time, inference tokens per second, generated samples, and auxiliary-head parameter overhead.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "next_span_contrastive",
+        "Title": "Next-Span Contrastive Prediction for Chunk-Aware Autoregressive Modeling",
+        "Experiment": "Add a lightweight contrastive auxiliary objective that trains hidden states to identify their true upcoming character span among in-batch negatives. Extend GPTConfig with use_span_contrastive, span_len, num_span_anchors, span_loss_weight, and span_temperature. In GPT.__init__, add an anchor projection, a span projection, and learned relative span position embeddings. In GPT.forward, keep the standard next-character lm_head and cross-entropy unchanged, but add optional arguments span_loss_weight_current and return_aux_info. When targets are provided, the model is in training mode, use_span_contrastive is enabled, and span_loss_weight_current > 0, randomly sample num_span_anchors valid anchor positions where a future span of length span_len is available. For each anchor, encode targets[:, anchor:anchor+span_len] using the tied token embedding table plus relative span embeddings, mean-pool the span representation, and project it. Project the hidden state x[:, anchor, :], L2-normalize both projected vectors, compute batch-by-batch similarities divided by span_temperature, and apply InfoNCE cross-entropy with diagonal positives. The returned training loss is next_token_loss + span_loss_weight_current * mean(span_losses). In the training loop, ramp span_loss_weight_current linearly from 0 to span_loss_weight after warmup_iters. Because the auxiliary loss is disabled in eval mode and generation, estimate_loss, validation, final reporting, and sampling remain based on ordinary next-character loss. Add a small diagnostic that reports next-span retrieval accuracy on validation batches. Compare the baseline to span contrastive training with span_len=16, num_span_anchors=2, span_loss_weight=0.05, span_temperature=0.1, plus one ablation at span_loss_weight=0.1 across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total training time, inference tokens per second, generated samples, retrieval accuracy, and auxiliary parameter overhead.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "confidence_ngram_distillation",
+        "Title": "Confidence-Gated N-Gram Distillation for Sample-Efficient Character Transformers",
+        "Experiment": "Build a fixed smoothed backoff n-gram teacher from each dataset's train.bin before training, using orders up to 5 and no validation data. Store next-character count dictionaries for each context order and compute a teacher confidence from the selected context count. During training, keep the standard next-character cross-entropy unchanged. After warmup_iters, sample a small subset of token positions from each batch, query the highest-order available teacher distribution for each context, keep and renormalize the top-k teacher probabilities, and add a KL distillation loss between the student's restricted top-k distribution and the teacher's top-k distribution. Weight each sampled position by a confidence factor such as count / (count + c), and ramp the global distillation weight alpha_t from 0 to alpha over 1000 iterations. Validation, generation, and final reporting remain based on ordinary next-character cross-entropy with no n-gram teacher at inference. Compare the baseline against max_order=3 and max_order=5 teachers with top_k=16 and alpha values 0.05 and 0.1 across shakespeare_char, enwik8, and text8. Report best validation loss, early convergence speed, train-time overhead, inference tokens per second, generated samples, teacher coverage, teacher-only validation loss, and student-teacher agreement over training.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "stochastic_time_reversal",
+        "Title": "Stochastic Time-Reversal Training for Regularized Causal Language Models",
+        "Experiment": "Add an optional stochastic_time_reversal training mode. Extend GPTConfig with use_direction_embedding and n_directions=2. In GPT.__init__, add a learned direction embedding table when enabled. In GPT.forward, accept an optional direction_id argument, either an integer or a per-example tensor, and add the corresponding direction embedding to token embeddings before dropout. In the training loop, keep get_batch unchanged. For each batch, construct reverse examples from the same contiguous windows with X_rev = torch.flip(Y, dims=[1]) and Y_rev = torch.flip(X, dims=[1]). After warmup_iters, ramp a reverse probability p_t from 0 to p over 1000 iterations. Sample a boolean mask over batch examples; masked examples use X_rev,Y_rev,direction_id=1, and unmasked examples use X,Y,direction_id=0. Train with the ordinary cross-entropy loss on this mixed batch, requiring only one forward/backward pass per iteration. Use p=0.25 as the main setting, with ablations p=0.5 and no direction embedding. Keep validation, generation, final reporting, and inference speed measurement forward-only with direction_id=0 for direct comparability to the baseline. Add a diagnostic reverse validation loss using fully reversed validation batches. Compare across shakespeare_char, enwik8, and text8 using best forward validation loss, convergence speed, total training time, inference tokens per second, generated samples, reverse validation loss, and parameter overhead.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "causal_pause_tokens",
+        "Title": "Causal Pause Tokens for Internal Deliberation in Autoregressive Language Models",
+        "Experiment": "Extend GPTConfig with pause_steps and use_pause_step_embeddings. Keep block_size as the number of real dataset tokens, but allocate the position embedding table and any non-flash causal attention mask for an internal length of block_size * (pause_steps + 1). In GPT.__init__, add a learned pause token embedding and optional learned pause step embeddings. Modify GPT.forward so that when pause_steps > 0 it embeds the normal input tokens, inserts pause_steps learned pause embeddings after every real token, runs the existing causal Transformer over the expanded internal sequence, and computes next-character logits only from the final pause position after each real token. Targets remain the original Y tensor, so loss is ordinary next-character cross-entropy over real character positions only. For targets=None generation, return logits from the final pause position after the last real token, ensuring generated samples contain only dataset characters. Keep get_batch, validation splits, optimizer, and sampling protocol unchanged. Compare the baseline to pause_steps=1 as the main setting, with smaller ablations using pause_steps=2, disabling pause step embeddings, and a compute-aware pause_steps=1 run with a shorter real block_size so the internal sequence length matches the baseline. Report best validation loss, convergence speed, total training time, emitted-character inference tokens per second, generated samples, and parameter/compute overhead across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 7,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "loss_aware_span_replay",
+        "Title": "Loss-Aware Span Replay for Sample-Efficient Autoregressive Language Modeling",
+        "Experiment": "Add a fixed-size online replay buffer that stores training span start indices and an EMA of their detached per-example cross-entropy loss. Modify get_batch to optionally return sampled start indices and to accept a list of replay start indices for part of the batch. Modify GPT.forward or the training loop to obtain per-example losses using reduction='none' reshaped to batch by time, while keeping the ordinary mean next-character loss as the optimization objective. During warmup_iters, train exactly as the baseline and populate the buffer from uniformly sampled spans. After warmup, construct each training batch from a mixture of uniform spans and replay spans, using replay_fraction values such as 0.25 and 0.5. Sample replay spans from a clipped high-loss band, for example excluding the lowest 50 percent and highest 5 percent of buffered EMA losses, to focus on informative but not extreme spans. Keep estimate_loss, validation, generation, and final reporting based on uniform next-character loss for comparability. Compare against the baseline across shakespeare_char, enwik8, and text8, reporting best validation loss, convergence speed, total train time, inference tokens per second, generated samples, replay-buffer coverage, replay diversity, mean replay loss, and sampling overhead.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "latent_state_transition",
+        "Title": "Latent State Transition Prediction for Autoregressive Representation Learning",
+        "Experiment": "Extend GPTConfig with use_latent_transition and transition_loss_weight. In GPT.__init__, add a lightweight transition_mlp that takes concat(hidden_t, embedding(next_token)) and predicts a residual update in hidden space. In GPT.forward, keep the standard lm_head and next-character cross-entropy unchanged. When targets are provided, the model is training, use_latent_transition is enabled, and the current auxiliary weight is positive, use final hidden states x after ln_f. For positions 0 through T-2, form inputs from x[:, :-1, :] and detached tied token embeddings of targets[:, :-1], predict next_state_pred = x[:, :-1, :] + transition_mlp(...), and compute a cosine-distance loss against x[:, 1:, :].detach() after normalizing both tensors. Train with total_loss = next_token_loss + alpha_t * transition_loss, where alpha_t ramps from 0 to transition_loss_weight after warmup_iters. Keep estimate_loss, validation, final reporting, and generation based on ordinary next-character loss for comparability. Add an optional diagnostic reporting validation latent transition cosine error. Compare the baseline against transition_loss_weight values such as 0.05, 0.1, and 0.2 across shakespeare_char, enwik8, and text8, measuring best validation loss, convergence speed, total training time, inference tokens per second, generated samples, and auxiliary parameter overhead.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "entropy_adaptive_smoothing",
+        "Title": "Entropy-Adaptive Contextual Smoothing for Ambiguous Next-Token Supervision",
+        "Experiment": "Precompute short-context continuation statistics from each dataset's train.bin using context orders 1 to 3 and no validation data. For each observed context, store its count, top-k next-character probabilities, and entropy normalized by log(vocab_size). Keep the GPT architecture unchanged. In the training loop, compute logits and the ordinary one-hot next-character cross-entropy as usual. After warmup_iters, look up the highest-order available context for each batch position, falling back to shorter contexts or no smoothing when counts are too small. Compute a sparse contextual soft cross-entropy against the stored top-k continuation distribution, and blend it with the one-hot loss using epsilon_pos = epsilon_max * ramp * normalized_entropy, so low-entropy contexts remain nearly one-hot while ambiguous contexts receive more smoothing. Test epsilon_max values such as 0.05, 0.1, and 0.2 with top_k=16. Keep estimate_loss, validation, generation, final reporting, and inference speed based on ordinary one-hot next-character loss for direct comparability. Compare against the baseline, uniform label smoothing, and fixed contextual smoothing across shakespeare_char, enwik8, and text8 using best validation loss, convergence speed, total training time, inference tokens per second, generated samples, and simple calibration diagnostics such as average validation confidence.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "causal_cache_contrast",
+        "Title": "Causal Cache-Contrastive Regularization for Retrieval-Compatible Autoregressive Representations",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states before the lm_head in addition to logits and ordinary next-character loss. Add a causal_cache_contrast_loss function that normalizes hidden states and, for each position t, compares h_t to detached hidden states from earlier positions within a fixed cache_window. Use the next-token targets of earlier positions as cache labels. For positions whose true target appears at least once in the causal cache, maximize the softmax similarity mass assigned to earlier positions with the same target, using a temperature-scaled supervised contrastive loss. Compute this auxiliary loss only after warmup_iters and optionally on a random subset of valid positions to limit overhead. Train with total_loss = next_token_loss + alpha_t * cache_contrast_loss, where alpha_t ramps linearly to cache_loss_weight. Keep standard validation, generation, and final reporting based on the normal lm_head for comparability. Add a cache-augmented validation diagnostic that interpolates model probabilities with a causal neural-cache distribution built from hidden-state similarities. Compare the baseline against cache_window values 64 and 128, cache_loss_weight values 0.05 and 0.1, and cache interpolation weights 0.1 and 0.2 across shakespeare_char, enwik8, and text8. Report best ordinary validation loss, cache-augmented validation loss, convergence speed, total training time, inference tokens per second without cache, generated samples, valid cache-match rate, and average cache confidence.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "suffix_repetition_unlikelihood",
+        "Title": "Suffix-Conditioned Repetition Unlikelihood for Degeneration-Resistant Character Language Models",
+        "Experiment": "Keep the GPT architecture, generation code, and ordinary next-character cross-entropy unchanged. Add a suffix_repetition_unlikelihood_loss(logits, X, targets, suffix_lengths, window, max_positions) helper used only during training. For a random subset of token positions, look at suffixes of the current prefix with lengths 2 and 3. Within a recent context window, find previous occurrences of the same suffix and collect the tokens that followed those occurrences. These continuation tokens form a contextual negative set because predicting them would copy a stale local pattern; remove the true target token from the set so observed legitimate repetition is not penalized. Compute the auxiliary penalty as the mean of -log(1 - p_negative + eps) over valid negative tokens and positions. In the training loop, after warmup_iters, ramp alpha_t linearly to alpha and optimize total_loss = ce_loss + alpha_t * unlikelihood_loss. Test alpha values 0.01, 0.05, and 0.1 with window sizes 32 and 64, using max_positions to bound overhead. Keep estimate_loss, best validation loss, final reporting, and inference speed based on the standard next-character objective for comparability. Add generation diagnostics for repeated 3-gram rate, repeated 5-gram rate, average character run length, and suffix-copy rate. Compare against the baseline across shakespeare_char, enwik8, and text8 using best validation loss, convergence speed, total train time, inference tokens per second, generated samples, and repetition diagnostics.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "protected_attention_edge_dropout",
+        "Title": "Protected Causal Attention Edge Dropout for Context-Robust Language Modeling",
+        "Experiment": "Add a parameter-free training-time regularizer that randomly removes nonlocal causal attention edges. Extend GPTConfig with use_attention_edge_dropout, attention_edge_dropout_prob, attention_edge_dropout_warmup, and preserve_recent_tokens. Modify CausalSelfAttention.forward to accept edge_dropout_prob. When training and edge dropout is active, bypass flash attention and construct a dynamic causal attention mask of shape T by T. Preserve the diagonal and the most recent preserve_recent_tokens keys for every query, then independently drop the remaining valid past query-key edges with probability edge_dropout_prob before softmax. Ramp edge_dropout_prob from 0 after warmup_iters to values such as 0.05, 0.10, and 0.20. When edge dropout is inactive, keep the existing flash attention path, so clean validation, generation, and inference speed remain comparable to the baseline. Keep the ordinary next-character cross-entropy objective, optimizer, sampling code, and final reporting unchanged. Add evaluation probes for full-context validation loss, cropped-context validation loss at 64 and 128 tokens, and masked-attention validation loss at fixed edge dropout rates. Compare against the baseline across shakespeare_char, enwik8, and text8 using best clean validation loss, robustness losses, convergence speed, total train time, inference tokens per second without dropout, generated samples, and training-time overhead.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "sampled_predictive_quantization",
+        "Title": "Sampled Predictive State Quantization for Discrete Autoregressive Representations",
+        "Experiment": "Add an optional sampled vector-quantization auxiliary loss over GPT hidden states. Extend GPTConfig with use_state_quantization, num_codes, quant_positions_per_batch, quant_ce_weight, quant_vq_weight, commitment_weight, and quant_ramp_iters. In GPT.__init__, add a learned codebook of num_codes vectors with dimension n_embd and a small LayerNorm applied before reusing the existing tied lm_head on quantized states. In GPT.forward, keep the standard final hidden states, lm_head logits, and next-character cross-entropy unchanged. When targets are provided, the model is training, and state quantization is enabled, randomly sample up to quant_positions_per_batch valid batch-time positions from the final hidden states. Compute nearest-code assignments with squared Euclidean distance in float32, form straight-through quantized representations, and predict the corresponding next-character targets through the quantization LayerNorm and tied lm_head. Add auxiliary quantized next-token cross-entropy plus VQ-style codebook and commitment losses, ramping auxiliary weights from 0 after warmup_iters over quant_ramp_iters. Keep estimate_loss, clean validation, final reporting, inference speed, and generation based on the ordinary continuous model for direct comparability. Add a separate no-gradient diagnostic for codebook usage entropy, dead-code fraction, mean assignment distance, and quantized-head validation loss on sampled positions. Compare the baseline against num_codes values such as 128, 256, and 512 with quant_positions_per_batch around 1024 across shakespeare_char, enwik8, and text8, reporting best validation loss, convergence speed, total training time, inference tokens per second, generated samples, and representation diagnostics.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "embedding_noise_consistency",
+        "Title": "Embedding Noise Consistency for Locally Smooth Autoregressive Language Models",
+        "Experiment": "Modify GPT.forward to optionally accept an embedding_noise tensor that is added immediately after token embedding lookup and before position embeddings/dropout. Keep ordinary token-id generation unchanged. During training, compute the standard clean forward pass on X,Y and use its next-character cross-entropy as the primary loss. After warmup_iters, run a second forward pass on the same X,Y with Gaussian embedding noise scaled by the detached RMS magnitude of the clean token embeddings. Add a KL consistency loss between the detached clean predictive distribution and the noisy predictive distribution over all batch-time positions, with the consistency weight ramped linearly from 0 to alpha over 1000 iterations. Use total_loss = clean_ce_loss + alpha_t * consistency_loss. Keep estimate_loss, best validation loss, final reporting, and generation based on the ordinary clean model for comparability. Add robustness diagnostics that evaluate validation loss under fixed embedding noise scales and optionally under small random token corruption. Compare the baseline against noise consistency with alpha values 0.05 and 0.1 and noise scales such as 0.02 and 0.05 times embedding RMS across shakespeare_char, enwik8, and text8. Report best clean validation loss, noisy-validation robustness, convergence speed, total training time, inference tokens per second, and generated samples.",
+        "Interestingness": 7,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "soft_history_mixup",
+        "Title": "Soft History Mixup for Exposure-Robust Autoregressive Language Modeling",
+        "Experiment": "Modify GPT.forward to optionally accept input_embeds_override; when provided, use these embeddings instead of token embeddings from idx, while keeping position embeddings, Transformer blocks, lm_head, loss computation, validation, and generation otherwise unchanged. In the training loop, compute the ordinary clean forward pass on X,Y and its next-character cross-entropy. After warmup_iters, use detached clean logits from positions 0 through T-2 to construct expected embeddings for the corresponding history tokens X[:, 1:] by applying softmax(logits / tau), retaining the top_k probabilities, renormalizing them, and multiplying by a detached copy of the tied token embedding matrix. Build mixed input embeddings by interpolating selected history positions between their clean embeddings and these expected embeddings: mixed = (1 - lambda_t) * clean + lambda_t * expected, leaving X[:, 0] unchanged. Ramp lambda_t and the auxiliary weight alpha_t linearly over 1000 iterations after warmup. Run one auxiliary forward pass on the mixed embeddings and optimize total_loss = clean_loss + alpha_t * mixed_history_loss. Use tau=1.5, top_k=16, alpha=0.2, and maximum lambda=0.5 as the main setting, with a smaller lambda=0.25 ablation. Keep estimate_loss and best validation loss based on ordinary clean next-character cross-entropy for comparability. Add a lightweight robustness probe that evaluates validation loss under the same soft-history mixup without gradients. Compare against the baseline across shakespeare_char, enwik8, and text8 using best clean validation loss, soft-history robustness loss, convergence speed, total training time, inference tokens per second, and generated samples.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "gated_in_context_pointer",
+        "Title": "Gated In-Context Pointer Distributions for Copy-Aware Autoregressive Language Modeling",
+        "Experiment": "Add an optional in-context pointer output path to GPT. Extend GPTConfig with use_pointer_cache, pointer_window, pointer_temperature, and pointer_gate_bias. In GPT.__init__, add lightweight query and key projections from final hidden states plus a gate head nn.Linear(n_embd, 1), initializing the gate bias negative so training starts close to the baseline softmax. In GPT.forward, compute normal lm_head logits as usual. When the pointer cache is enabled, compute query-key similarities between each prediction position t and visible context positions s <= t within pointer_window, mask future and out-of-window positions, divide by pointer_temperature, and softmax over valid context positions. Scatter-add this pointer mass into a vocabulary-sized cache distribution using the observed input token ids X[:, s], which avoids any target leakage. Blend the normal softmax distribution with the cache distribution using sigmoid(gate_head(x)), then compute the next-character negative log likelihood from the blended probabilities with ignore_index support. For targets=None generation, return log(blended_probability) as logits so the existing temperature, top_k, and sampling code can be reused. Compare the baseline against pointer_window values 32, 64, and 128 across shakespeare_char, enwik8, and text8. Report best blended validation loss, ordinary lm_head-only validation loss as a diagnostic, convergence speed, total training time, inference tokens per second, generated samples, parameter overhead, average gate value, and target-in-cache rate. Include one ablation with a fixed scalar gate to test whether learned routing is necessary.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "learned_attention_sinks",
+        "Title": "Learned Causal Attention Sinks for Stable Autoregressive Context Utilization",
+        "Experiment": "Extend GPTConfig with num_sink_tokens and sink_dropout. In GPT.__init__, add a learned sink_emb parameter of shape num_sink_tokens by n_embd when num_sink_tokens > 0. Keep the ordinary position embedding table indexed over real token positions only, but make any non-flash causal attention mask large enough for the internal sequence length block_size + num_sink_tokens. In GPT.forward, compute token embeddings plus position embeddings for the real input tokens exactly as in the baseline, prepend the learned sink embeddings without ordinary position embeddings, run the Transformer over the sink-plus-token sequence, discard sink positions before the lm_head, and compute next-character cross-entropy only on real token positions. For targets=None generation, return logits only for real token positions so the existing generate function emits dataset characters only. During training, optionally apply sink_dropout by zeroing sink embeddings for a fraction of batches to test whether benefits require constant access to the sinks. Compare num_sink_tokens=0 against 1, 4, and 8 learned sinks, with a small sink_dropout ablation. Report best validation loss, convergence speed, total training time, inference tokens per second, generated samples, parameter overhead, and a non-flash diagnostic measuring average attention mass assigned to sink tokens across layers and heads.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "learned_attention_spans",
+        "Title": "Learned Per-Head Attention Span Budgets for Efficient Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_learned_attention_spans, min_attention_span, span_regularization_weight, span_ramp_iters, and hard_span_eval. In CausalSelfAttention, add one learnable scalar per attention head, initialized so the effective span is near the full block_size. When learned spans are enabled, use the manual causal attention path and transform each scalar with a sigmoid to obtain a span between min_attention_span and block_size. Add a smooth distance gate to attention logits so keys farther than a head's learned span are strongly downweighted while the usual causal mask is preserved. Add a model helper that returns the mean learned span divided by block_size, and in the training loop add a ramped penalty after warmup_iters: total_loss = next_token_loss + span_regularization_weight_current * mean_normalized_span. Keep estimate_loss and final reporting based on ordinary next-character cross-entropy. Add diagnostics for learned spans by layer/head, average effective span, validation loss per average span, and a hard-span evaluation mode that replaces the smooth gates with hard per-head cutoffs using the learned spans. Compare the standard flash-attention baseline, a manual-attention full-context control, and learned-span models with span_regularization_weight values such as 0.001, 0.003, and 0.01 across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total train time, inference tokens per second in soft and hard-span modes, generated samples, parameter overhead, and effective context usage.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "attention_distance_spectrum",
+        "Title": "Attention Distance Spectrum Regularization for Multi-Scale Head Specialization",
+        "Experiment": "Add an optional training-time regularizer that encourages attention heads within each layer to specialize over different causal distance scales. Extend GPTConfig with use_attention_distance_spectrum, distance_spectrum_weight, and distance_spectrum_ramp_iters. Modify CausalSelfAttention.forward so that, when the regularizer is active, it uses the manual causal attention path and returns each head's mean log causal distance, computed as the attention-probability-weighted average of log(1 + query_index - key_index) over valid causal edges. In GPT.forward, collect these per-layer head distances, sort the heads within each layer, and compare the sorted distances to a fixed log-spaced target spectrum from local to full-context attention using a small squared-error penalty. Train with total_loss = next_token_loss + alpha_t * distance_spectrum_loss, ramping alpha_t after warmup_iters. Keep validation loss, generation, final reporting, and normal inference speed based on the ordinary next-character objective with the auxiliary path disabled. Add diagnostics reporting per-head mean attended distance, within-layer distance diversity, attention-distance entropy, and cropped-context validation losses at 64, 128, and 256 tokens. Compare the flash-attention baseline, a manual-attention control, and distance-spectrum variants with weights such as 0.001, 0.003, and 0.01 across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total training time, inference tokens per second, generated samples, and whether the regularizer produces stable multi-scale head specialization.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "gated_hashed_ngram_embeddings",
+        "Title": "Gated Hashed N-Gram Embeddings for Tokenization-Free Character Transformers",
+        "Experiment": "Extend GPTConfig with use_ngram_embeddings, ngram_orders, ngram_hash_buckets, ngram_embd_dim, and ngram_dropout. In GPT.__init__, add one trainable hashed embedding path per n-gram order, using nn.Embedding(ngram_hash_buckets + 1, ngram_embd_dim), a Linear projection to n_embd, and a learned scalar gate initialized to 0. In GPT.forward, compute causal n-gram hash IDs from idx for n-grams ending at each current position, using bucket 0 for positions without enough left context and buckets 1..ngram_hash_buckets for valid hashes. Add the gated projected n-gram embeddings to tok_emb before position embeddings and dropout. Keep the standard next-character cross-entropy objective, lm_head, optimizer, estimate_loss, validation, and generation unchanged. Use [2,3,4] with 4096 buckets and ngram_embd_dim=64 as the main setting, with ablations [2,3] and 8192 buckets. Compare against the original baseline and a small parameter-matched widening control across shakespeare_char, enwik8, and text8 using best validation loss, convergence speed, total train time, inference tokens per second, generated samples, parameter overhead, learned gate values, and simple hash occupancy diagnostics from sampled batches.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "counterfactual_prefix_consistency",
+        "Title": "Counterfactual Prefix Consistency for Distractor-Robust Autoregressive Language Models",
+        "Experiment": "Add a training-time consistency regularizer for robustness to irrelevant distant context. Keep the standard clean forward pass on X,Y and optimize ordinary next-character cross-entropy. After warmup_iters, create X_cf by rolling X along the batch dimension and replacing the first prefix_len tokens of each sequence with another example's prefix, leaving positions prefix_len onward unchanged. Run a second forward pass on X_cf,Y, ignore its cross-entropy, and compute a temperature-scaled KL loss from detached clean logits to counterfactual-prefix logits only on unchanged suffix positions t >= prefix_len + burn_in. Train with total_loss = clean_ce_loss + alpha_t * temperature^2 * KL(clean || counterfactual), ramping alpha_t from 0 to alpha over 1000 iterations after warmup. Use prefix_len=128, burn_in=16, temperature=2.0, and alpha values 0.05 and 0.1 as main settings, with prefix_len=64 as a small ablation. Keep estimate_loss, best validation loss, final reporting, and generation based on clean full-context next-character loss. Add validation probes that perform the same prefix swap on validation batches and report suffix-only distractor-prefix loss, clean-to-counterfactual KL, and the robustness gap relative to clean validation. Compare against the baseline across shakespeare_char, enwik8, and text8 using clean best validation loss, distractor-prefix robustness, convergence speed, total train time, inference tokens per second, and generated samples.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "causal_ema_mixer",
+        "Title": "Learned Causal EMA Memory Mixers for Multi-Timescale Autoregressive Modeling",
+        "Experiment": "Add an optional CausalEMAMixer residual branch to Transformer blocks. Extend GPTConfig with use_ema_mixer, ema_layers, ema_gate_init, ema_min_half_life, and ema_max_half_life. Implement CausalEMAMixer with value, gate, and output projections plus one learned half-life per embedding channel. Initialize half-lives log-spaced between ema_min_half_life and ema_max_half_life, map learned parameters back into this range with a sigmoid transform, compute decay = exp(-log(2) / half_life), and run a causal scan over the sequence: state_t = decay * state_{t-1} + (1 - decay) * value_t. Multiply the EMA state by a sigmoid gate from the current hidden state, project back to n_embd, and apply dropout. In Block.__init__, add ln_ema, ema_mixer, and a learnable scalar branch gate initialized to ema_gate_init; in Block.forward, insert x = x + ema_branch_gate * ema_mixer(ln_ema(x)) after attention and before the MLP when enabled. Keep the standard next-character cross-entropy objective, optimizer, validation, generation, and final reporting unchanged. Compare the baseline against EMA mixers in all layers and lower-half layers, using a main half-life range of 2 to 256 tokens. Report best validation loss, convergence speed, total training time, inference tokens per second, parameter overhead, generated samples, and learned half-life distributions by layer across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "causal_segment_summaries",
+        "Title": "Position-Preserving Causal Segment Summary Tokens for Online Context Compression",
+        "Experiment": "Extend GPTConfig with use_segment_summaries, summary_stride, summary_tokens_per_segment, and summary_dropout. In GPT.__init__, keep the existing real-token position embedding table unchanged, add learned summary token embeddings, add learned summary segment-position embeddings for up to ceil(block_size / summary_stride) segments, and size any non-flash causal attention mask for the expanded internal sequence length. Modify GPT.forward to embed real input tokens with their normal token and position embeddings, insert learned summary placeholders after each completed segment of summary_stride real tokens, optionally drop summary embeddings during training with summary_dropout, run the standard causal Transformer over the expanded sequence, gather hidden states corresponding only to real token positions, and apply the existing tied lm_head to those gathered states. Compute ordinary next-character cross-entropy only on real positions, with no auxiliary loss. For targets=None generation, construct the same internal sequence and return logits from the final real-token hidden state so generated samples contain only dataset characters. Compare the baseline against summary_stride values 16 and 32 with one summary token per segment, plus small ablations with two summary tokens per segment and nonzero summary_dropout. Report best validation loss, convergence speed, total training time, inference tokens per second, generated samples, parameter overhead, and an optional manual-attention diagnostic measuring attention mass from later real tokens to earlier summary tokens across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "residual_stream_isotropy",
+        "Title": "Residual Stream Isotropy Regularization for Autoregressive Transformers",
+        "Experiment": "Add a lightweight training-only isotropy regularizer on GPT hidden states. Extend GPTConfig with use_isotropy_regularizer, isotropy_loss_weight, isotropy_sample_positions, isotropy_ramp_iters, isotropy_variance_floor, and isotropy_corr_weight. Modify GPT.forward to optionally return the final residual stream after ln_f and before lm_head while preserving the existing logits and loss behavior. Implement residual_isotropy_loss(hidden) by randomly sampling batch-time positions, casting to float32, centering features, penalizing per-dimension standard deviation below isotropy_variance_floor, then standardizing dimensions and penalizing squared off-diagonal entries of the resulting correlation matrix. In the training loop, keep ordinary next-character cross-entropy as the main objective and add a ramped auxiliary loss after warmup_iters: total_loss = ce_loss + alpha_t * isotropy_loss. Keep estimate_loss, validation, generation, final reporting, and inference speed based on the ordinary next-character lm_head for comparability. Compare the baseline against final-layer isotropy weights such as 1e-4, 3e-4, and 1e-3 across shakespeare_char, enwik8, and text8. Include a small ablation that also applies the same penalty to one middle layer. Report best validation loss, convergence speed, total train time, inference tokens per second, generated samples, effective rank of hidden states, mean absolute off-diagonal correlation, and fraction of low-variance dimensions.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "budgeted_prefix_gating",
+        "Title": "Budgeted Prefix Gating for Learned Context Compression in Autoregressive Transformers",
+        "Experiment": "Add a training-time learned compression objective for distant context. Extend GPTConfig with use_prefix_gating, prefix_gate_weight, prefix_keep_ratio, prefix_budget_weight, prefix_gate_temperature, prefix_gate_ramp_iters, and gated_prefix_len. Modify GPT.forward to optionally accept input_embeds_override while keeping the standard logits, loss, validation, and generation behavior unchanged. In GPT.__init__, add a lightweight prefix_gate_head nn.Linear(n_embd, 1) and a learned null_context_emb parameter. During training, first run the ordinary clean forward pass on X,Y and optimize standard next-character cross-entropy. After warmup_iters, compute token embeddings for X, apply prefix_gate_head only to the first gated_prefix_len positions, and form differentiable sigmoid gates. Replace gated prefix embeddings with gate * token_emb + (1 - gate) * null_context_emb, while leaving the recent suffix tokens unchanged. Run a second forward pass with these mixed embeddings and add a temperature-scaled KL consistency loss from detached clean logits to gated-prefix logits, computed only on suffix positions after gated_prefix_len plus a small burn-in. Add a budget penalty that keeps the mean prefix gate near prefix_keep_ratio, and ramp auxiliary weights after warmup. Keep estimate_loss, clean validation, final reporting, and generation based on the ordinary ungated model for comparability. Add diagnostics evaluating validation loss under learned prefix gates and random prefix gates at keep ratios 0.25, 0.5, and 0.75, and report mean gate value, gate entropy, retained-token distance profile, and suffix robustness gap. Compare the baseline against gated_prefix_len=128, prefix_keep_ratio=0.5, and prefix_gate_weight values 0.05 and 0.1 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "budgeted_token_halting",
+        "Title": "Budgeted Token Halting for Adaptive-Depth Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_token_halting, halting_exit_layers, halting_loss_weight, halting_budget_weight, target_mean_depth, and halting_ramp_iters. Use exit layers such as [2, 4, 6] for the 6-layer model, with the final exit always included. In GPT.__init__, add one small LayerNorm and one scalar halting head for each non-final exit, while reusing the existing tied lm_head for all exit predictions. In GPT.forward, collect hidden states at the selected exits, compute tied-head logits at each exit, and compute token-wise online halting probabilities: each non-final exit emits sigmoid halt probability h_i, its depth weight is h_i times the remaining unhalted mass, and the final exit receives all leftover mass. Compute an adaptive negative log likelihood by mixing the true-token probabilities across exits, and train with total_loss = final_ce_loss + alpha_t * adaptive_nll + beta_t * max(0, mean_expected_depth - target_mean_depth)^2, ramping alpha_t and beta_t after warmup_iters. Keep standard final-depth validation, generation, and final reporting unchanged for direct comparability. Add diagnostics for adaptive validation loss, mean expected depth, hard halting depth histogram, depth usage by token-loss quantile, and an optional sequential early-exit generation probe that stops when cumulative halt probability or exit confidence crosses a threshold. Compare against the baseline and a fixed auxiliary-exit deep supervision control across shakespeare_char, enwik8, and text8 using best final validation loss, adaptive validation loss, convergence speed, total train time, inference tokens per second, generated samples, and average layers used.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "free_run_feature_moments",
+        "Title": "Free-Running Feature Moment Matching for Exposure-Robust Autoregressive Transformers",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states before lm_head in addition to logits and ordinary next-character cross-entropy. In the normal training step, run the clean forward pass on X,Y and keep its cross-entropy as the main objective; reuse the returned clean hidden states as the detached teacher-forced reference. After warmup_iters, every rollout_interval iterations, take a small sub-batch, keep a real prefix of length prefix_len such as 128, and sample a free-running continuation of length rollout_len such as 32 from the current model under torch.no_grad(). Run a gradient-tracked forward pass on the prefix plus sampled continuation, collect hidden states over the sampled continuation positions, and match their normalized feature means and standard deviations to the detached clean hidden states from the corresponding real continuation positions. Train with total_loss = ce_loss + alpha_t * moment_loss, where alpha_t ramps from 0 to alpha after warmup. Keep estimate_loss, best validation loss, final reporting, and generation based on the standard next-character model. Add diagnostics for free-running moment gap, generated repeated n-gram rates, generated entropy, training overhead, and ordinary inference tokens per second. Compare against the baseline across shakespeare_char, enwik8, and text8 using clean validation loss, convergence speed, sample stability diagnostics, and robustness when conditioning on short model-generated prefixes.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "residual_update_budgeting",
+        "Title": "Residual Update Budgeting for Selective Information Flow in Autoregressive Transformers",
+        "Experiment": "Add an optional token-wise residual-update budget inside Transformer blocks. Extend GPTConfig with use_update_budgeting, update_budget_weight, target_update_rate, update_gate_temperature, and update_budget_ramp_iters. In Block.__init__, add scalar gate heads for the attention and MLP residual branches, for example nn.Linear(n_embd, 1), with biases initialized so sigmoid(bias / update_gate_temperature) is about 0.95 and training begins close to the baseline. In Block.forward, compute gate_attn = sigmoid(gate_head_attn(ln_1(x)) / update_gate_temperature) and gate_mlp = sigmoid(gate_head_mlp(ln_2(x)) / update_gate_temperature), then use x = x + gate_attn * attn(ln_1(x)) and x = x + gate_mlp * mlp(ln_2(x)). Collect mean gate values across layers, branches, and token positions. In the training loop, keep ordinary next-character cross-entropy as the primary objective and, after warmup_iters, add a ramped budget penalty budget_loss = (mean_gate - target_update_rate)^2 so total_loss = ce_loss + alpha_t * budget_loss. Keep validation, generation, and final reporting based on ordinary next-character loss with learned gates active. Compare the baseline, a learned-gate no-budget control, and budgeted variants with target_update_rate values such as 0.6, 0.75, and 0.9 across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total train time, inference tokens per second, generated samples, average gate usage by layer and branch, gate usage by token-loss quantile, gate collapse diagnostics, and whether gates concentrate on high-uncertainty or boundary-like character positions.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "detached_predictive_feedback",
+        "Title": "Detached Predictive Feedback for Self-Conditioned Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_predictive_feedback, feedback_layers, feedback_temperature, feedback_top_k, and feedback_gate_init. In GPT.__init__, add one LayerNorm, one Linear feedback projection, and one learned scalar sigmoid gate for each selected feedback layer. In GPT.forward, after each selected Transformer block, normalize the current hidden state, compute provisional next-token logits using the existing tied lm_head, convert them to a detached soft next-token distribution with optional top-k truncation, multiply by a detached copy of the tied token embedding table to form an expected next-token embedding, project it back to n_embd, and add sigmoid(gate) * projected_feedback to the residual stream before later layers. Initialize gates near 0.05 so training starts close to the baseline. Keep the final lm_head, standard next-character cross-entropy, estimate_loss, validation, generation, and final reporting unchanged. Use feedback_layers=[2,4] and feedback_top_k=32 as the main setting, with ablations using all non-final layers, no top-k truncation, and non-detached feedback probabilities. Report best validation loss, convergence speed, total training time, inference tokens per second with feedback active, generated samples, learned gate values, and intermediate provisional prediction accuracy across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "depth_scaled_residual_dropout",
+        "Title": "Depth-Scaled Residual Path Dropout for Robust Autoregressive Transformers",
+        "Experiment": "Add a parameter-free residual-path dropout regularizer to Transformer blocks. Extend GPTConfig with use_residual_path_dropout, max_attn_path_drop, max_mlp_path_drop, path_drop_warmup_iters, and depth_scaled_path_drop. Give each Block its layer index at initialization. Implement drop_residual_path(update, drop_prob, training) that samples one Bernoulli keep mask per batch example with shape B x 1 x 1, scales kept updates by 1 / keep_prob, and zeros dropped updates during training only. Modify Block.forward to accept path_drop_scale and independently apply dropout to the attention and MLP residual updates before adding them to x. If depth_scaled_path_drop is enabled, multiply each block's maximum drop probability by its normalized depth so early layers remain close to baseline. Modify GPT.forward to pass path_drop_scale into all blocks. In the training loop, ramp path_drop_scale from 0 to 1 after warmup_iters, while keeping the ordinary next-character cross-entropy objective unchanged. Validation, generation, final reporting, and inference speed use path_drop_scale=0 with the full model active. Compare the baseline against attention-only, MLP-only, and combined residual-path dropout with maximum probabilities 0.05, 0.10, and 0.20 across shakespeare_char, enwik8, and text8. Add diagnostics that evaluate validation loss under forced residual-path dropout and under truncation of the final one or two layers, reporting best clean validation loss, robustness loss gaps, convergence speed, total training time, inference tokens per second, generated samples, and zero parameter overhead.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "predictive_velocity_regularization",
+        "Title": "Adaptive Predictive Velocity Regularization for Stable Autoregressive Language Modeling",
+        "Experiment": "Add a training-only predictive_velocity_loss(logits, targets, margin_base, margin_scale) helper. In the training loop, keep the ordinary next-character cross-entropy as the primary objective. After warmup_iters, compute adjacent predictive distributions from logits[:, :-1, :] and logits[:, 1:, :] in float32 and measure their Jensen-Shannon divergence. Build a detached adaptive margin from simple local transition signals: allow a larger margin when adjacent targets differ, and further increase the margin using adjacent per-token cross-entropy or predictive entropy so high-surprise transitions are not oversmoothed. Penalize only excess velocity with loss = mean(relu(js_divergence - adaptive_margin)). Ramp the auxiliary weight alpha_t from 0 to alpha over 1000 iterations after warmup. Keep estimate_loss, validation, generation, and final reporting based on ordinary next-character cross-entropy for comparability. Compare alpha values such as 0.01, 0.03, and 0.1 against the baseline, plus ablations with no adaptive margin and entropy-only margins. Report best validation loss, convergence speed, total train time, inference tokens per second, generated samples, validation calibration, average predictive velocity, and repeated n-gram diagnostics across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "causal_history_sketching",
+        "Title": "Causal History Sketch Prediction for Multi-Scale Autoregressive State Learning",
+        "Experiment": "Add a training-only auxiliary objective that asks each final hidden state to predict multi-scale summaries of the strictly previous context. Extend GPTConfig with use_history_sketching, history_sketch_windows, history_sketch_min_tokens, history_sketch_loss_weight, and history_sketch_ramp_iters. In GPT.__init__, add one lightweight Linear(n_embd, vocab_size) sketch head per history window. Modify GPT.forward to optionally return final hidden states and, when targets are provided, compute the ordinary next-character cross-entropy exactly as before. During training after warmup, build soft sketch targets from idx only: for each position t and window W, compute the normalized character histogram over idx[:, max(0, t-W):t], excluding the current token and ignoring positions with fewer than history_sketch_min_tokens previous characters. These targets can be computed with one-hot encodings and cumulative sums over the sequence dimension. Compute soft cross-entropy between each sketch head's logits and its corresponding history histogram, then optimize total_loss = next_token_loss + alpha_t * mean(history_sketch_losses), where alpha_t ramps from 0 to history_sketch_loss_weight after warmup_iters. Keep estimate_loss, best validation loss, final reporting, generation, and inference speed based on the ordinary next-character lm_head for comparability. Add separate diagnostics for sketch validation cross-entropy, top-k sketch mass assigned to actually observed recent characters, cropped-context validation losses at 64 and 128 tokens, and parameter overhead. Compare the baseline against history_sketch_windows=[16, 64, 256] with history_sketch_loss_weight values 0.02 and 0.05, plus a single-window ablation using only window 64, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "causal_recurrence_embeddings",
+        "Title": "Causal Recurrence Embeddings for Copy-Aware Autoregressive Language Modeling",
+        "Experiment": "Extend GPTConfig with use_recurrence_embeddings, recurrence_num_buckets, recurrence_max_distance, use_recurrence_auxiliary, recurrence_aux_weight, and recurrence_aux_ramp_iters. Add a helper that computes logarithmic previous-occurrence distance buckets from idx only: for each position, use one reserved bucket when the current token has not appeared earlier in the same sequence, otherwise bucket the distance to its most recent previous occurrence up to recurrence_max_distance. In GPT.__init__, add a learned recurrence bucket embedding table and a scalar gate initialized near zero, and in GPT.forward add the gated recurrence embedding to tok_emb before position embeddings and dropout. For the auxiliary variant, add two small heads from the final hidden state: one predicts whether the next target token appears anywhere in the visible prefix, and one predicts the previous-occurrence distance bucket for that next token, using ignore_index for positions where no previous occurrence exists. Train with total_loss = next_token_loss + alpha_t * auxiliary_loss, ramping alpha_t after warmup_iters with recurrence_aux_weight values such as 0.05 and 0.1. Keep estimate_loss, validation, final reporting, and sampling based on ordinary next-character loss, with generation recomputing recurrence buckets from the generated prefix. Compare the baseline against recurrence embeddings alone and recurrence embeddings plus the auxiliary loss across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total training time, inference tokens per second, generated samples, parameter overhead, next-token recurrence accuracy, distance-bucket accuracy, target-in-prefix rate, and repeated n-gram diagnostics.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "future_ngram_sketching",
+        "Title": "Hashed Future N-Gram Sketch Prediction for Tokenization-Free Language Models",
+        "Experiment": "Add a training-only auxiliary objective that asks each hidden state to predict a compact hashed sketch of short n-grams appearing in its near future. Extend GPTConfig with use_future_ngram_sketching, sketch_ngram_orders, sketch_window, sketch_num_buckets, sketch_loss_weight, and sketch_ramp_iters. In GPT.__init__, add one Linear(n_embd, sketch_num_buckets) sketch head per selected n-gram order, using orders [2, 3], sketch_window=16, and sketch_num_buckets=512 as the main setting. Modify GPT.forward to optionally return final hidden states before the lm_head while preserving the standard logits and next-character cross-entropy behavior. Add a future_ngram_sketch_loss helper that builds multi-hot bucket targets from targets: for each position, hash every valid future n-gram of the chosen order starting within the next sketch_window characters into a bucket, then compute a balanced BCEWithLogits loss that upweights positive buckets and ignores tail positions with no valid future n-grams. In the training loop, after warmup_iters, ramp alpha_t to sketch_loss_weight and optimize total_loss = next_token_loss + alpha_t * mean(sketch_losses). Keep estimate_loss, clean validation, final reporting, generation, and inference speed based on ordinary next-character loss for comparability. Add diagnostics for sketch validation BCE, top-k bucket recall, clean best validation loss, convergence speed, total training time, generated samples, and auxiliary parameter overhead. Compare the baseline against sketch_window values 16 and 32, sketch_num_buckets values 512 and 1024, and sketch_loss_weight values 0.02 and 0.05 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "representation_entropy_calibration",
+        "Title": "Representation-Based Entropy Calibration for Ambiguous Autoregressive Contexts",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states before the lm_head, while preserving the standard logits and next-character cross-entropy behavior. Add a training-only representation_entropy_calibration_loss helper. After warmup_iters, sample a modest number of anchor positions from the batch, for example 256 batch-time positions, and build a detached candidate pool of hidden states from other batch examples, optionally also allowing earlier positions from the same sequence but never later positions. L2-normalize detached hidden states, find the top-k nearest candidate prefix representations for each anchor, and form an empirical neighbor continuation histogram from the corresponding next-character targets. Compute the normalized entropy of this neighbor histogram as an ambiguity target, weighting anchors by mean neighbor similarity and requiring at least two valid neighbor labels. Compute the model's normalized predictive entropy from its logits at the same anchor positions, and add a squared-error penalty between model entropy and detached neighbor entropy. Train with total_loss = ce_loss + alpha_t * entropy_calibration_loss, ramping alpha_t from 0 to alpha after warmup_iters. Keep estimate_loss, validation, generation, final reporting, and inference speed based on ordinary next-character cross-entropy with no nearest-neighbor computation. Add diagnostics for validation confidence calibration, average predictive entropy, negative log likelihood by confidence bucket, and agreement between model entropy and neighbor entropy. Compare the baseline against alpha values 0.01, 0.03, and 0.1 with top-k values 8 and 16 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "contextual_fast_adapters",
+        "Title": "Contextual Fast Adapters for Test-Time Self-Supervised Language Model Adaptation",
+        "Experiment": "Add optional low-rank residual adapters to each Transformer block: apply a small LayerNorm, down-project from n_embd to rank r, apply GELU, up-project back to n_embd, zero-initialize the up projection, and add the result as a residual branch after the MLP. Train the model with the standard next-character cross-entropy, unchanged generation, and unchanged ordinary validation; include one simple ablation where only adapter parameters are trained for the first few hundred iterations before unfreezing the full model. Add a prefix-adaptation validation routine that samples contiguous validation blocks, splits each block into an observed prefix and held-out suffix, saves the adapter parameters, freezes all non-adapter weights, takes 1 to 3 SGD steps on prefix next-token loss, re-runs the full block, reports cross-entropy only on suffix positions, and then restores the saved adapter parameters. Compare ordinary validation loss, no-adaptation suffix loss, prefix-adapted suffix loss, adaptation on mismatched prefixes as a negative control, adaptation overhead, adapter parameter count, and generated samples after adapting on a prompt prefix. Run ablations over adapter rank, prefix length, adaptation learning rate, number of adaptation steps, and adapters-only versus adapters-plus-LayerNorm adaptation across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "scale_conditioned_strided_lm",
+        "Title": "Scale-Conditioned Strided Language Modeling for Multi-Timescale Character Transformers",
+        "Experiment": "Add an auxiliary multi-resolution language modeling objective using strided subsequences. Modify get_batch to accept a stride argument s. For stride s, sample a raw span long enough to form x_t = data[i + t*s] and y_t = data[i + (t+1)*s] for t in 0..block_size-1, so the model predicts the next character in a downsampled sequence covering a larger raw context. Extend GPTConfig with use_stride_embedding and stride_values, add a small learned stride embedding table in GPT.__init__, initialize it to zero, and modify GPT.forward to accept stride_id and add the corresponding embedding to token embeddings before position embeddings. During training, always compute ordinary contiguous stride-1 cross-entropy as the main loss. After warmup_iters, sample one auxiliary stride from {2, 4}, compute a second forward pass on that strided batch, and optimize total_loss = loss_stride1 + alpha_t * loss_strided, ramping alpha_t over 1000 iterations to values such as 0.1 or 0.25. Keep estimate_loss, best validation loss, final reporting, generation, and inference speed based on ordinary stride-1 inputs with stride_id=0 for direct comparability. Add validation probes for stride-2 and stride-4 downsampled losses, plus a small ablation without stride embeddings to test whether explicit scale conditioning matters. Compare against the baseline across shakespeare_char, enwik8, and text8, reporting clean best validation loss, strided validation losses, convergence speed, total train time, inference tokens per second, generated samples, and stride-embedding parameter overhead.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "adversarial_position_scrubbing",
+        "Title": "Adversarial Position Scrubbing for Translation-Robust Autoregressive Transformers",
+        "Experiment": "Add a lightweight training-only adversarial classifier that discourages final hidden states from making absolute block position linearly decodable. Implement a GradReverse autograd function and extend GPTConfig with use_position_adversary, position_adv_weight, position_adv_ramp_iters, and position_adv_sample_positions. In GPT.__init__, add pos_adv_head = nn.Linear(n_embd, block_size). Modify GPT.forward to optionally return final hidden states after ln_f. In the training loop, keep the ordinary next-character cross-entropy as the primary loss. After warmup_iters, randomly sample up to position_adv_sample_positions batch-time hidden states, pass them through gradient reversal with a ramped coefficient, predict their absolute timestep with pos_adv_head, and add the resulting position classification loss to the training objective. The classifier learns to predict position, while the Transformer trunk receives reversed gradients scaled by the ramped adversarial weight. Keep estimate_loss, clean validation, final reporting, inference speed, and generation based only on the standard lm_head. Add diagnostics for adversarial position accuracy, a detached validation position-probe accuracy, cropped-context validation losses at 64 and 128 tokens, and shifted-position validation losses using an optional position_offset argument in GPT.forward. Compare the baseline against position_adv_weight values such as 0.01, 0.03, and 0.1 across shakespeare_char, enwik8, and text8, reporting best clean validation loss, robustness to shifted and cropped contexts, convergence speed, total train time, inference tokens per second, generated samples, and whether reduced position decodability correlates with better context robustness.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "confidence_knn_distillation",
+        "Title": "Confidence-Weighted kNN Distillation from Recent Hidden-State Memories",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states before the lm_head while preserving the standard logits and next-character cross-entropy behavior. Add a RecentKNNCache helper that stores a FIFO queue of detached, L2-normalized float16 hidden states and their next-character targets from recent training batches only. During training, after warmup_iters and every knn_interval iterations, sample up to knn_num_anchors batch-time positions from the current forward pass, query the cache by cosine similarity, retrieve top-k neighbors, and build a sparse soft next-token target by softmaxing neighbor similarities with temperature knn_temperature and scatter-adding weights by neighbor target token. Compute a confidence score for each anchor from the cache target distribution, such as 1 minus normalized entropy or the maximum token probability, and use it to weight the auxiliary soft cross-entropy from the student's logits to the cache-derived target. Train with total_loss = next_token_loss + alpha_t * mean(confidence * knn_loss), ramping alpha_t from 0 to alpha over knn_ramp_iters. Update the cache after each optimizer step using detached hidden states and targets from the current batch. Keep estimate_loss, clean validation, generation, final reporting, and inference speed based on the ordinary lm_head with no cache required. Add diagnostics for neighbor target agreement, cache-target entropy, average top-k similarity, kNN-only validation loss using a train-built cache, and training overhead. Use a main setting such as cache_size=32768, top_k=16, knn_num_anchors=512, knn_interval=4, knn_temperature=0.07, and alpha=0.05, with small ablations over alpha, top_k, and confidence weighting across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "batchwise_latent_cpc",
+        "Title": "Batchwise Multi-Horizon Latent Predictive Coding for Autoregressive Transformers",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states after ln_f in addition to logits and the ordinary next-character cross-entropy. Extend GPTConfig with use_latent_cpc, cpc_horizons, cpc_proj_dim, cpc_loss_weight, cpc_temperature, cpc_anchors_per_horizon, and cpc_ramp_iters. In GPT.__init__, add one linear predictor per horizon and one shared linear projection to the CPC dimension. During training, keep standard next-token cross-entropy as the primary loss. After warmup_iters, for each horizon h in cpc_horizons such as [4, 16, 64], sample a small set of anchor positions t that are valid for all batch examples. For each anchor, project hidden[:, t] through the horizon predictor, project hidden[:, t+h].detach() through the shared projection, L2-normalize both, and compute a B-by-B InfoNCE loss where each example's own future state is the positive and other batch examples are negatives. Ramp the auxiliary weight to cpc_loss_weight over cpc_ramp_iters and train with total_loss = next_token_loss + alpha_t * mean(cpc_losses). Keep estimate_loss, validation loss, generation, final reporting, and inference speed based only on the ordinary lm_head. Add validation diagnostics for horizon retrieval accuracy, positive similarity, negative similarity, and train-time overhead, computed with no auxiliary gradients. Compare the baseline against cpc_horizons=[4,16,64] with cpc_loss_weight values 0.03 and 0.1, plus a local-only ablation [4,16], across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "self_contrastive_rollout_ranking",
+        "Title": "Self-Contrastive Rollout Ranking for Sequence-Level Autoregressive Training",
+        "Experiment": "Keep the GPT architecture, standard next-character cross-entropy, validation, and generation code unchanged. Add a helper score_continuations(model, prefix, continuations) that concatenates each prefix with a candidate continuation, runs one forward pass on combined[:, :-1], computes log_softmax logits, gathers log probabilities for combined[:, 1:], and averages only the continuation target positions starting at prefix_len - 1. In the training loop, after warmup_iters and only every rank_interval iterations, take a small sub-batch from X, use the first prefix_len tokens as the prefix and the following rollout_len tokens as the real continuation. Temporarily switch the model to eval mode and sample a generated continuation of length rollout_len from the same prefix under torch.no_grad(), then restore train mode. Score the real and generated continuations together with gradient tracking, skip exact-match negatives, and add rank_loss = softplus(margin - (score_real - score_generated) / rank_temperature). Train with total_loss = ce_loss + alpha_t * rank_loss, ramping alpha_t from 0 to alpha after warmup. Use prefix_len=128, rollout_len=16 or 32, rank_batch_size=8, rank_interval=10 or 20, alpha values 0.03 and 0.05, margin=0, and rank_temperature=1.0 as main settings. Keep estimate_loss, best validation loss, final reporting, and inference speed based on ordinary next-character loss for comparability. Add diagnostics for ranking accuracy, real-vs-generated score gap, repeated 3-gram and 5-gram rates in generated samples, generated entropy, exact-match negative rate, and training-time overhead across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "subsampled_causal_vat",
+        "Title": "Subsampled Causal Virtual Adversarial Training for Robust Character Language Models",
+        "Experiment": "Modify GPT.forward to optionally accept input_embeds_override and optionally return token embeddings before position embeddings. In the training loop, keep the standard full-batch clean forward pass on X,Y and optimize ordinary next-character cross-entropy as the primary loss. After warmup_iters, and only every vat_interval iterations, take a small sub-batch from the current batch and use its detached clean logits as teacher predictions. Compute detached token embeddings for this sub-batch, add a small normalized random perturbation, and run one probe forward pass through the model using input_embeds_override. Compute KL divergence from the detached clean distribution to the probe distribution, then use torch.autograd.grad only with respect to the perturbation to obtain a virtual adversarial direction. Detach and normalize this direction, recompute non-detached token embeddings for the same sub-batch, run a final adversarial forward pass with embeddings plus vat_epsilon times the direction, and add a ramped KL consistency loss to the clean objective. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed based on the ordinary clean model. Add diagnostics for validation loss under random embedding noise, validation loss under one-step adversarial embedding perturbations, predictive KL sharpness, confidence calibration, and train-time overhead. Compare the baseline against vat_epsilon values 0.5 and 1.0 times embedding RMS, alpha values 0.03 and 0.1, and vat_interval values 2 and 4 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "bootstrap_output_ensembles",
+        "Title": "Bootstrap Output Ensembles for Calibrated Autoregressive Character Modeling",
+        "Experiment": "Add an optional lightweight bootstrapped output ensemble on top of the shared GPT trunk. Extend GPTConfig with use_bootstrap_heads, num_bootstrap_heads, bootstrap_rank, bootstrap_keep_prob, bootstrap_loss_weight, and ensemble_eval. In GPT.__init__, keep the existing tied lm_head unchanged and add num_bootstrap_heads low-rank residual output heads, each implemented as Linear(n_embd, bootstrap_rank), GELU, and Linear(bootstrap_rank, vocab_size), with the final projection zero-initialized so training starts at the baseline. In GPT.forward, compute base_logits normally, then compute member logits as base_logits plus each residual head when enabled. During training with targets, compute the ordinary base next-character cross-entropy and also per-token cross-entropies for each bootstrap member. For each member, sample an independent Bernoulli mask over batch-time positions with probability bootstrap_keep_prob, normalize by the number of kept positions, and optimize total_loss = base_loss + bootstrap_loss_weight * mean(masked_member_losses), using bootstrap_loss_weight=0.5 as the main setting. During validation and generation, support base-only logits and ensemble logits formed by averaging probabilities from the base head and all bootstrap members, returning log probabilities for compatibility with the existing sampling code. Report base validation loss, ensemble validation loss, best validation loss for both modes, confidence-binned calibration error, average member disagreement, total training time, inference tokens per second for base and ensemble decoding, parameter overhead, and generated samples. Compare the baseline against num_bootstrap_heads values 2 and 4 with bootstrap_rank values 32 and 64 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "self_induced_segment_targets",
+        "Title": "Self-Induced Segment Targets for Tokenization-Free Character Language Modeling",
+        "Experiment": "Before training each dataset, build a compact train-only segment lexicon by counting token n-grams of lengths 2 through 6 from train.bin, optionally using a fixed token cap for large datasets to keep preprocessing cheap. Select the top K frequent multi-character spans above a minimum count and add all single-character tokens as fallback segment IDs. Store spans in length-descending lookup dictionaries for greedy longest-match assignment. Modify get_batch to sample block_size + max_segment_len tokens internally, return the usual X and Y, and optionally return segment_targets where each position is the longest lexicon segment beginning at the corresponding next-character target position. Extend GPTConfig with use_segment_aux, segment_vocab_size, max_segment_len, segment_aux_weight, and segment_aux_ramp_iters. In GPT.__init__, add segment_head = nn.Linear(n_embd, segment_vocab_size). In GPT.forward, keep the standard tied lm_head and next-character cross-entropy unchanged, but when segment_targets are provided during training, compute an auxiliary segment cross-entropy from the final hidden states and train with total_loss = char_loss + alpha_t * segment_loss, ramping alpha_t after warmup. Validation, generation, final_info, and inference speed remain based on the ordinary character lm_head. Add diagnostics for segment prediction accuracy, multi-character span coverage, average matched span length, and auxiliary parameter overhead. Compare the baseline against K values such as 256, 1024, and 4096, plus ablations with max_segment_len 4 versus 6, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "gated_ngram_logit_prior",
+        "Title": "Gated Log-Linear N-Gram Priors for Hybrid Character Language Modeling",
+        "Experiment": "Before training each dataset, build train-only smoothed backoff n-gram continuation tables from train.bin, using orders up to 3 as the main setting and order 5 as a small ablation. Add a helper that receives the current batch X and returns centered prior_log_probs of shape batch by time by vocab, where each position uses only the visible prefix tokens in X to query the highest available n-gram context and subtracts the uniform log probability baseline. Extend GPTConfig with use_ngram_logit_prior, ngram_prior_order, and ngram_gate_bias. In GPT.__init__, add prior_gate_head = nn.Linear(n_embd, 1), initialized with a negative bias so training starts close to the neural-only baseline. In GPT.forward, compute the usual lm_head logits, and when prior_log_probs are provided, form final_logits = neural_logits + sigmoid(prior_gate_head(hidden)) * prior_log_probs. Compute the normal cross-entropy on final_logits while also reporting neural-only loss as a diagnostic. Modify estimate_loss to report combined validation loss, neural-only validation loss, and prior-only validation loss. Modify generation so that, when enabled, it queries the same causal n-gram prior from the generated prefix and samples from the gated combined logits; also run neural-only sampling as a control. Compare the baseline, fixed scalar prior weights, and learned per-token gates across shakespeare_char, enwik8, and text8. Report best combined validation loss, neural-only validation loss, convergence speed, total train time, inference tokens per second with prior lookup, generated samples, average gate value, gate value versus n-gram confidence, and whether the neural model can override high-confidence but wrong n-gram predictions.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "self_routed_adapters",
+        "Title": "Self-Routed Low-Rank Adapters for Token-Conditional Autoregressive Computation",
+        "Experiment": "Extend GPTConfig with use_routed_adapters, routed_adapter_layers, num_experts, adapter_rank, router_balance_weight, and router_ramp_iters. Add a SelfRoutedAdapters module with a router Linear(n_embd, num_experts) and a small bank of low-rank residual adapters, each implemented as Linear(n_embd, adapter_rank), GELU, Linear(adapter_rank, n_embd). Initialize the final adapter projections with a very small standard deviation so the model starts close to the baseline while still allowing router gradients. Modify Block to optionally add x = x + routed_adapters(ln_adapter(x)) after the standard MLP residual in selected layers. Use dense softmax router weights over all experts, and return a simple load-balancing loss that penalizes deviation of the mean router probability from uniform. In GPT.forward, accumulate router losses and, during training, add a ramped router_balance_weight term to the ordinary next-character cross-entropy. Keep estimate_loss, validation, final reporting, and generation unchanged except that routed adapters remain active in eval. Compare the baseline, a parameter-matched single shared adapter control, routed adapters in upper-half layers, and routed adapters in all layers using num_experts=4 and adapter_rank=64 as the main setting. Report best validation loss, convergence speed, total train time, inference tokens per second, parameter overhead, generated samples, router utilization entropy, and expert usage by character category and token-loss quantile across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "multi_hash_suffix_fingerprints",
+        "Title": "Multi-Hash Causal Suffix Fingerprints for Order-Aware Autoregressive Representations",
+        "Experiment": "Add a lightweight training-only auxiliary objective that asks final hidden states to predict compact ordered fingerprints of the strictly previous context. Extend GPTConfig with use_suffix_fingerprints, suffix_fingerprint_windows, suffix_fingerprint_buckets, suffix_fingerprint_hashes, suffix_fingerprint_loss_weight, and suffix_fingerprint_ramp_iters. In GPT.__init__, add one small Linear(n_embd, suffix_fingerprint_buckets) head for each window-hash pair, using windows [8, 32, 128], 512 buckets, and 2 independent hash functions as the main setting. Modify GPT.forward to optionally return final hidden states while preserving the standard lm_head and next-character cross-entropy. During training, build targets from idx only: for each position t and window W, compute deterministic rolling hashes of idx[:, t-W:t] modulo suffix_fingerprint_buckets, using ignore_index for positions with fewer than W previous tokens. Compute auxiliary cross-entropy losses from the fingerprint heads and optimize total_loss = next_token_loss + alpha_t * mean(fingerprint_losses), ramping alpha_t from 0 to suffix_fingerprint_loss_weight after warmup_iters. Keep estimate_loss, clean validation, final reporting, generation, and inference speed based on the ordinary next-character lm_head for comparability. Add diagnostics for fingerprint accuracy by window, clean validation loss, cropped-context validation losses at 64 and 128 tokens, parameter overhead, and whether order-fingerprint predictability correlates with improved language modeling. Compare the baseline against suffix_fingerprint_loss_weight values 0.02, 0.05, and 0.1, plus ablations using one hash function, only short windows [8, 32], or only the long window [128], across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "causal_lz_match_prediction",
+        "Title": "Causal Lempel-Ziv Match Prediction for Compression-Aware Language Modeling",
+        "Experiment": "Add a bounded training-only auxiliary objective that predicts a coarse longest-previous-match length for the upcoming continuation. Extend GPTConfig with use_lz_match_aux, lz_max_match_len, lz_context_window, lz_num_anchors, lz_loss_interval, lz_loss_weight, and lz_ramp_iters. Modify GPT.forward to optionally return final hidden states after ln_f while preserving the standard lm_head logits and next-character cross-entropy. In GPT.__init__, add lz_match_head = nn.Linear(n_embd, 6), with buckets 0, 1, 2, 3-4, 5-8, and 9+. Add a compute_lz_match_labels helper used in the training loop after warmup. On active auxiliary iterations, sample up to lz_num_anchors valid batch-time positions with enough future tokens available. For each anchor t, form the true future continuation from Y[:, t:t+lz_max_match_len], scan only the visible causal prefix X[:, max(0, t-lz_context_window):t+1] for the longest prefix match, cap the length at lz_max_match_len, and convert it to a bucket label. Train with total_loss = next_token_loss + alpha_t * lz_match_cross_entropy, ramping alpha_t from 0 to lz_loss_weight. Keep estimate_loss, clean validation, generation, final reporting, and inference speed based only on ordinary next-character loss. Add diagnostics for LZ bucket accuracy, bucket distribution, validation loss stratified by match-length bucket, copyable-versus-novel token loss, generated repeated n-gram rates, and simple generated-text compression ratio. Compare the baseline against lz_loss_weight values 0.02, 0.05, and 0.1 with lz_context_window values 64 and 128 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "masked_associative_recall",
+        "Title": "Masked Associative Recall Augmentation for In-Context Binding in Character Language Models",
+        "Experiment": "Add a training-only auxiliary associative-recall task using only token IDs from the current dataset vocabulary. Implement make_associative_recall_batch(data, vocab_size, block_size, batch_size, num_pairs, key_len, value_len, filler_len) that builds fixed-layout sequences containing several key-value records, distracting filler sampled from train.bin, and later key queries followed by their associated values. Construct recall targets with -1 everywhere except positions where the model must predict the value tokens after a query key, reusing the existing cross_entropy ignore_index behavior. In the training loop, keep the ordinary text batch and next-character loss as the primary objective. After warmup_iters, with probability recall_prob run one auxiliary recall batch and optimize total_loss = lm_loss + alpha_t * recall_loss, ramping alpha_t after warmup. Keep ordinary validation, generation, final reporting, and inference speed unchanged. Add a no-gradient recall evaluation varying num_pairs, key_len, value_len, filler distance, and distractor keys, reporting masked recall loss and exact full-value recovery accuracy. Compare against the baseline across shakespeare_char, enwik8, and text8 using best natural validation loss, convergence speed, total train time, inference tokens per second, generated samples, and associative recall accuracy. Main setting: num_pairs=8, key_len=3, value_len=4, recall_prob=0.1, alpha=0.2, with small ablations alpha=0.1 and recall_prob=0.05.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "single_edit_consistency",
+        "Title": "Single-Edit Consistency for Alignment-Robust Autoregressive Language Models",
+        "Experiment": "Keep the GPT architecture, clean next-character objective, validation, and generation unchanged. Add a helper make_single_edit_batch(X, vocab_size, edit_prob, edit_prefix_len) that, independently for each example, either leaves the sequence unchanged or applies one random insertion or deletion inside the first edit_prefix_len tokens. The helper crops or pads back to block_size and returns X_edit, an alignment map where each edited timestep points to the clean timestep with the same current token, and a validity mask. In the training loop, compute the standard clean forward pass on X,Y and optimize ordinary cross-entropy as the primary loss. After warmup_iters, ramp edit_prob and alpha_t over 1000 iterations, run a second forward pass on X_edit, gather detached clean logits using the alignment map, and add temperature-scaled KL consistency only on valid aligned positions after edit_prefix_len + burn_in. Use edit_prefix_len=128, burn_in=16, temperature=2.0, alpha=0.05 as the main setting, with alpha=0.1 and max edit_prob values 0.02 and 0.05 as small ablations. Keep estimate_loss and final reporting based on clean validation loss for comparability. Add validation probes that apply insertion-only, deletion-only, and mixed single edits to validation batches, reporting aligned suffix cross-entropy, clean-to-edited KL, and robustness gap. Compare against the baseline across shakespeare_char, enwik8, and text8 using clean best validation loss, edit-corrupted validation loss, convergence speed, total train time, inference tokens per second, generated samples, and insertion-versus-deletion sensitivity.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "teacher_forced_continuation_decoder",
+        "Title": "Teacher-Forced Continuation Decoders for Ordered Future Supervision",
+        "Experiment": "Extend GPTConfig with use_continuation_decoder, continuation_len, continuation_anchors, continuation_loss_weight, continuation_ramp_iters, and continuation_input_dropout. In GPT.__init__, add a lightweight auxiliary continuation decoder consisting of a LayerNorm on anchor hidden states, a Linear initializer or GRUCell hidden initializer, one GRUCell operating in n_embd dimensions, a small output LayerNorm, and reuse the existing tied lm_head for decoder logits. Modify GPT.forward to optionally return final hidden states after ln_f while preserving the standard next-character logits and cross-entropy. In the training loop, after warmup_iters, sample a small set of valid anchor positions t. For each anchor hidden state h_t, initialize the microdecoder state from h_t, feed the detached embedding of the true next character targets[:, t] as the first decoder input, optionally apply dropout to teacher-forced input embeddings, and teacher-force subsequent detached true future embeddings while predicting targets[:, t+1:t+1+continuation_len], corresponding to offsets 2 through continuation_len+1. Compute auxiliary cross-entropy over these ordered future tokens and train with total_loss = next_token_loss + alpha_t * continuation_loss, ramping alpha_t to continuation_loss_weight. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed based only on the ordinary lm_head. Add diagnostics for continuation validation loss, per-offset accuracy, exact short-continuation recovery, auxiliary parameter count, and train-time overhead. Compare the baseline against continuation_len values 4 and 8 with continuation_loss_weight values 0.03 and 0.1 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "future_token_survival",
+        "Title": "Multi-Horizon Future Token Survival Prediction for Autoregressive State Learning",
+        "Experiment": "Add a training-only auxiliary objective that asks each hidden state to predict which vocabulary tokens will appear at least once within several future horizons. Extend GPTConfig with use_future_token_survival, survival_horizons, survival_loss_weight, survival_ramp_iters, and survival_sample_positions. In GPT.__init__, add survival_head = nn.Linear(n_embd, vocab_size * len(survival_horizons)). Modify GPT.forward to optionally return final hidden states after ln_f while preserving the standard lm_head logits and next-character cross-entropy behavior. Add build_sampled_survival_targets(targets, sampled_positions, horizons, vocab_size), which constructs binary labels only for sampled batch-time positions by marking whether each token appears in targets[:, t:t+h] for each horizon h, skipping invalid tail positions. During training after warmup_iters, sample a bounded number of valid positions, compute survival logits from the corresponding hidden states, and apply BCEWithLogits loss with simple positive-class reweighting per horizon to reduce dominance by frequent absent labels. Optimize total_loss = next_token_loss + alpha_t * survival_loss, ramping alpha_t to survival_loss_weight. Keep estimate_loss, clean validation, final reporting, generation, and inference speed based only on the ordinary next-character lm_head. Add lightweight diagnostics for survival top-k recall and precision by horizon, calibration of predicted token-presence probabilities, validation loss stratified by whether the next token recurs soon, generated repeated n-gram rates, and auxiliary parameter overhead. Compare the baseline against survival_horizons=[8, 32, 128] with survival_loss_weight values 0.02 and 0.05, plus a small horizon ablation [16, 64], across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "rare_context_tempering",
+        "Title": "Rare-Context Target Tempering for Memorization-Resistant Character Language Models",
+        "Experiment": "Before training each dataset, build a train-only fixed-size hash table of clipped support counts for causal context suffixes of length L, using rolling hashes over train.bin and no validation data. In get_batch or the training loop, estimate the support count for each batch-time position from the visible context suffix ending at the current input token, ignoring positions with fewer than L visible tokens. Modify GPT.forward or the training loop to compute per-token cross-entropy with reduction='none' and log probabilities. After warmup_iters, convert support counts into a per-position smoothing value epsilon_t = epsilon_max * max(0, support_threshold - count) / support_threshold, so rare contexts receive stronger smoothing and frequent contexts remain nearly baseline. Train with loss = mean((1 - epsilon_t) * one_hot_nll + epsilon_t * uniform_nll), where uniform_nll is the negative mean log probability over the vocabulary. Keep estimate_loss, best validation loss, final reporting, inference speed, and generation based on ordinary one-hot next-character loss for comparability. Compare the baseline, fixed uniform label smoothing, and rare-context tempering with L in {8, 16}, support_threshold values such as 2 and 4, and epsilon_max in {0.05, 0.1, 0.2} across shakespeare_char, enwik8, and text8. Report best validation loss, train-validation gap, calibration by confidence bucket, loss stratified by context support, generated repeated n-gram rate, and approximate train-substring copy rate.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "matched_context_advantage",
+        "Title": "Position-Matched Context Advantage Prediction for Selective Autoregressive Context Use",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states and per-token cross-entropy losses by using F.cross_entropy(..., reduction='none') reshaped to batch by time. Also add an optional position_offset argument so a cropped suffix can reuse the same learned absolute position indices as it had inside the full block. Extend GPTConfig with use_context_advantage_head, context_advantage_weight, context_advantage_ramp_iters, context_probe_len, context_advantage_interval, and context_advantage_scale. In GPT.__init__, add a scalar context_advantage_head from the final hidden state, for example LayerNorm followed by Linear(n_embd, 1). During training, compute the ordinary full-context forward pass on X,Y and optimize the standard mean next-character cross-entropy as the primary loss. After warmup_iters and only every context_advantage_interval iterations, run a no-gradient cropped-context probe on X[:, -context_probe_len:] and Y[:, -context_probe_len:] using position_offset=block_size-context_probe_len. Align this probe with the final context_probe_len positions of the full-context pass and define a detached target advantage as clamp((nll_short - nll_full) / context_advantage_scale, 0, 1), so only positions where longer context improves true-token likelihood receive high targets. Predict this bounded advantage from the corresponding full-context hidden states and add a ramped mean-squared-error auxiliary loss. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed based on the ordinary lm_head only. Add diagnostics for context-advantage prediction error, average predicted advantage by position and token-loss quantile, validation loss stratified by predicted advantage, and cropped-context validation losses at 64 and 128 tokens with matched position offsets. Compare the baseline against context_probe_len values 64 and 128 with context_advantage_weight values 0.02, 0.05, and 0.1 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "causal_manifold_mixup",
+        "Title": "Causal Manifold Mixup for Smooth Autoregressive Prefix Representations",
+        "Experiment": "Modify GPT.forward to support optional hidden-state mixup arguments: mix_layer, mix_perm, and mix_lambda. During the forward pass, after embeddings when mix_layer=0 or after the selected Transformer block otherwise, replace hidden states h with mix_lambda * h + (1 - mix_lambda) * h[mix_perm]. When targets are provided for this mixed pass, compute a soft-label next-character loss as mix_lambda * CE(logits, targets) + (1 - mix_lambda) * CE(logits, targets[mix_perm]), preserving ignore_index behavior. In the training loop, keep the ordinary clean next-character cross-entropy as the primary objective. After warmup_iters, ramp an auxiliary weight alpha_t and run one additional mixed forward pass using a random batch permutation and lambda sampled from Beta(mixup_beta, mixup_beta), optionally converted to max(lambda, 1-lambda) to avoid overly ambiguous blends. Use a fixed middle layer such as mix_layer=3 as the main setting, with simple ablations at mix_layer=0 and mix_layer=6. Keep estimate_loss, clean validation, generation, final reporting, and inference speed based on the ordinary unmixed model. Compare against the baseline across shakespeare_char, enwik8, and text8 using best clean validation loss, convergence speed, total train time, inference tokens per second, generated samples, confidence calibration, and validation loss under the same hidden-state mixup diagnostic. Main settings: mixup_beta in {0.2, 0.4} and auxiliary weight alpha in {0.1, 0.25}.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "causal_transition_cache",
+        "Title": "Causal Transition Caches for In-Context Analogical Language Modeling",
+        "Experiment": "Add an optional strictly causal transition-cache output path to GPT. Extend GPTConfig with use_transition_cache, transition_cache_window, transition_cache_temperature, and transition_cache_gate_bias. In GPT.__init__, add query and key projections from final hidden states plus a scalar gate head initialized with a negative bias so training begins close to the baseline. In GPT.forward, compute the ordinary lm_head logits and next-character cross-entropy as usual. When the transition cache is enabled, for each prediction position t compare its query hidden state only to earlier key states s where s < t and t - s <= transition_cache_window. Associate each earlier key position s with the visible continuation token idx[:, s + 1], which avoids target leakage because s + 1 <= t. Softmax the masked similarities over valid earlier transitions, scatter-add the mass into a vocabulary-sized cache distribution, and blend this cache distribution with the neural softmax distribution using sigmoid(gate_head(hidden_t)). Force the cache gate to zero at positions with no valid earlier transition. Compute training and validation negative log likelihood from the blended probabilities, while also logging neural-only loss, cache-only loss on valid positions, average gate value, target-in-cache rate, and cache confidence. For generation, compute the same cache from the generated prefix and return log blended probabilities for the final position so the existing sampling code remains usable. Compare the baseline against transition_cache_window values 32, 64, and 128, plus a fixed-gate ablation, across shakespeare_char, enwik8, and text8. Report best blended validation loss, neural-only validation loss, convergence speed, total train time, inference tokens per second, generated samples, gate usage, target-in-cache rate, and gains stratified by whether the true next token appeared as a prior continuation.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "dual_mode_span_denoising",
+        "Title": "Dual-Mode Span Denoising for Causal Character Language Models",
+        "Experiment": "Add a shared-weight bidirectional span-denoising auxiliary task while keeping ordinary causal language modeling unchanged at inference. Extend GPTConfig with use_dual_mode_denoising, denoise_mask_prob, denoise_span_len, denoise_loss_weight, denoise_ramp_iters, and use_mode_embeddings. Modify CausalSelfAttention.forward, Block.forward, and GPT.forward to accept an is_causal flag; ordinary language-model calls use is_causal=True, while denoising calls use is_causal=False. Add a learned mask_emb parameter to GPT, and optionally a two-entry mode embedding table added before position embeddings. In the training loop, compute the standard next-character loss on X,Y as the primary objective. After warmup_iters, sample short contiguous masked spans in X, replace masked token embeddings with mask_emb, set denoise_targets to X only at masked positions and -1 elsewhere, and run a second forward pass with is_causal=False and mode_id=1. Optimize total_loss = lm_loss + alpha_t * denoise_loss, ramping alpha_t to denoise_loss_weight. Keep estimate_loss, best validation loss, final reporting, sampling, and inference speed strictly causal with mode_id=0 and no masks. Use denoise_mask_prob=0.15, denoise_span_len=3, and denoise_loss_weight=0.1 as the main setting, with ablations using denoise_loss_weight=0.05, denoise_span_len=1, no mode embeddings, and a causal-denoising control where the auxiliary pass keeps is_causal=True. Compare across shakespeare_char, enwik8, and text8 using clean causal validation loss, convergence speed, total training time, inference tokens per second, generated samples, and auxiliary denoising validation loss.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "surprisal_to_go_forecasting",
+        "Title": "Surprisal-to-Go Forecasting for Uncertainty-Aware Autoregressive Representations",
+        "Experiment": "Add a training-only auxiliary objective that asks each hidden state to predict detached future average surprisal over several horizons. Extend GPTConfig with use_surprisal_forecasting, surprisal_windows, surprisal_loss_weight, and surprisal_ramp_iters. In GPT.__init__, add a small LayerNorm plus Linear(n_embd, len(surprisal_windows)) regression head. Modify GPT.forward to optionally return final hidden states and per-token next-character cross-entropy losses using reduction='none', while preserving the ordinary logits, mean loss, validation, generation, and final reporting behavior. In the training loop, compute the standard next-token cross-entropy as the primary loss. After warmup_iters, use the detached per-token NLL from the same clean forward pass to build strictly future targets: for each position t and horizon W, predict the average NLL over positions t+1 through t+W, masking invalid tail positions. Use cumulative sums for efficient target construction, normalize targets with detached running mean and standard deviation per horizon, and train the auxiliary head with masked Huber loss. Optimize total_loss = next_token_loss + alpha_t * surprisal_forecast_loss, ramping alpha_t to surprisal_loss_weight. Keep estimate_loss, best validation loss, inference speed, and generation based only on the ordinary lm_head. Add diagnostics for validation correlation and R^2 between predicted and realized future surprisal, validation NLL stratified by predicted future difficulty, calibration by confidence bucket, and generated entropy or repetition metrics. Compare against the baseline using surprisal_windows=[4,16,64] with surprisal_loss_weight values such as 0.01, 0.03, and 0.1, plus a single-horizon ablation, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "ecoc_target_supervision",
+        "Title": "Error-Correcting Output Codes for Dense Next-Character Supervision",
+        "Experiment": "Add a lightweight auxiliary objective that predicts fixed binary codes for the next character. Extend GPTConfig with use_ecoc_targets, ecoc_code_dim, ecoc_loss_weight, ecoc_ramp_iters, and ecoc_codebook_type. Before model initialization, create a deterministic frozen codebook of shape vocab_size by ecoc_code_dim, using balanced random binary codes as the main setting and an optional train-only co-occurrence SimHash codebook as one ablation. In GPT.__init__, add ecoc_head = nn.Linear(n_embd, ecoc_code_dim) and register the codebook as a non-trainable buffer when enabled. In GPT.forward, keep the ordinary lm_head logits and next-character cross-entropy unchanged; when targets are provided, gather the target token's code bits and compute BCEWithLogitsLoss from ecoc_head(hidden), ignoring positions with target -1. In the training loop, ramp alpha_t from 0 to ecoc_loss_weight after warmup_iters and optimize total_loss = ce_loss + alpha_t * ecoc_loss. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed based only on the standard lm_head for comparability. Add diagnostics for code-bit accuracy, nearest-code token recovery accuracy, validation loss on rare versus frequent characters, and calibration by confidence bucket. Compare the baseline against random ECOC codes with 32, 64, and 128 bits, plus one co-occurrence SimHash ablation, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "prediction_conditioned_context_bottleneck",
+        "Title": "Prediction-Conditioned Context Bottlenecks for Sufficient Autoregressive Evidence",
+        "Experiment": "Modify GPT.forward to optionally accept input_embeds_override and optionally return final hidden states before the lm_head while preserving standard logits, loss, validation, and generation. Extend GPTConfig with use_context_bottleneck, bottleneck_loss_weight, bottleneck_budget_weight, bottleneck_target_keep_rate, bottleneck_preserve_recent, bottleneck_ramp_iters, and bottleneck_temperature. In GPT.__init__, add lightweight query/key projections for a context mask scorer plus a learned null_context_emb. During training, compute the ordinary clean forward pass on X,Y and optimize standard next-character cross-entropy. After warmup_iters, sample one valid anchor position t per auxiliary step. Use the detached clean hidden state h[:, t] as a prediction query and detached token embeddings from visible positions s <= t as keys to produce sigmoid keep gates over the causal prefix for each example. Always preserve the most recent bottleneck_preserve_recent positions before t, and replace older prefix embeddings by gate * token_emb + (1 - gate) * null_context_emb while leaving positions after t unchanged. Run one auxiliary forward pass on these masked embeddings, gather logits only at position t, and add a temperature-scaled KL consistency loss from detached clean logits[:, t] to masked logits[:, t]. Add a budget penalty encouraging the mean gate value over maskable prefix positions toward bottleneck_target_keep_rate, ramping auxiliary weights after warmup. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed based on the ordinary unmasked model. Add diagnostics for masked-anchor validation KL/loss, learned keep rate by context distance, gate entropy, robustness under random prefix deletion, and loss stratified by predicted context dependence. Compare target keep rates 0.25, 0.5, and 0.75 against the baseline and a random-mask consistency control across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "causal_histogram_memory",
+        "Title": "Multi-Scale Causal Histogram Memory for Character Language Models",
+        "Experiment": "Add an optional causal histogram memory path to GPT. Extend GPTConfig with use_histogram_memory, histogram_windows, histogram_proj_dim, and histogram_gate_init. Implement build_causal_histograms(idx, vocab_size, windows), which uses one-hot encodings and cumulative sums to compute normalized visible-prefix token histograms for windows such as [16, 64, 256] at every sequence position, including only tokens available up to the current input position and never using future targets. In GPT.__init__, add a small projection module that maps the concatenated histograms to n_embd, followed by a learned scalar gate initialized near zero. In GPT.forward, when enabled, add gate * histogram_projection to the token embeddings before position embeddings and dropout. Keep the standard next-character cross-entropy objective, optimizer, estimate_loss, validation, final reporting, and generation unchanged except that generation recomputes causal histograms from the generated prefix. Compare the baseline against histogram memory with windows [16,64,256], plus ablations using only short windows [16,64] and only the full window [256]. Report best validation loss, convergence speed, total train time, inference tokens per second, parameter overhead, learned gate value, validation loss stratified by whether the target appeared in each recent window, and generated repetition diagnostics across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "periodic_sharpness_aware_lm",
+        "Title": "Periodic Sharpness-Aware Updates for Generalizable Character Language Models",
+        "Experiment": "Add an optional periodic Sharpness-Aware Minimization mode around the existing AdamW optimizer while keeping the GPT architecture, data loader, validation, generation, and next-character objective unchanged. During warmup_iters, train exactly as the baseline. After warmup, every sam_interval iterations, compute the ordinary loss and scaled gradients on the current batch, unscale gradients, estimate the global gradient norm over optimizer parameters, perturb parameters by rho * grad / grad_norm, clear gradients, run a second forward/backward pass on the same batch, restore the original parameters, then apply the existing gradient clipping, AdamW step, and GradScaler update. On non-SAM iterations, use the baseline update. Compare baseline AdamW against periodic SAM with rho values 0.02 and 0.05 and sam_interval values 4 and 8, plus full SAM on shakespeare_char and a compute-aware control that performs an extra forward/backward pass without perturbing weights. Keep final reporting and inference speed unchanged. Add diagnostics for best validation loss, train-validation gap, gradient norm, perturbation norm, convergence speed, total training time, validation loss under shorter contexts 64 and 128, validation loss under small input-token corruption, generated samples, and inference tokens per second across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "causal_evidence_distillation",
+        "Title": "Causal Evidence Distillation for Interpretable Autoregressive Context Use",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states after ln_f while preserving the standard logits, loss, validation, generation, and final reporting behavior. Add a small evidence_scorer module that projects clean hidden states to a low-dimensional space and scores an anchor position against candidate visible context positions with scaled dot products. In the training loop, keep ordinary next-character cross-entropy as the primary objective. After warmup_iters and only every evidence_interval iterations, sample a small sub-batch, one or more anchor positions t per example, and a fixed number of candidate causal positions s <= t from local, medium, and distant distance bands. From the clean forward pass, record the detached true-token negative log likelihood at each anchor. Build one batched ablation input by repeating the sampled examples and replacing exactly one candidate token per copy with a random valid token different from the original token. Run this ablation batch under torch.no_grad(), measure the increase in true-token negative log likelihood at each anchor, clamp negative increases to zero, and skip anchors whose total measured influence is near zero. Normalize the remaining candidate influences into a soft evidence target. Train evidence_scorer on the clean hidden states to predict this target with KL divergence, adding alpha_t * evidence_loss to the primary LM loss with alpha_t ramped after warmup. Keep estimate_loss, best validation loss, generation, and inference speed based only on the ordinary lm_head, with no evidence computation at inference. Add diagnostics for evidence top-k accuracy, rank correlation with measured ablation influence, average influence by distance band, validation loss stratified by predicted context dependence, target-in-context rate, and generated repetition or copy-rate metrics. Compare the baseline against evidence_loss_weight values such as 0.02, 0.05, and 0.1, evidence_interval values such as 4 and 8, and candidate counts such as 8 and 16 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "hindsight_reverse_distillation",
+        "Title": "Hindsight Reverse-Context Distillation for Causal Character Language Models",
+        "Experiment": "Extend GPTConfig with use_direction_embedding, reverse_loss_weight, hindsight_distill_weight, hindsight_temperature, hindsight_ramp_iters, hindsight_interval, and use_hindsight_confidence_weighting. Add a two-entry learned direction embedding in GPT.__init__ when enabled, and modify GPT.forward to accept direction_id, defaulting to the forward direction for validation and generation. In the training loop, keep the ordinary forward batch X,Y and forward next-character cross-entropy as the primary objective. Construct a reversed batch from the same contiguous window with X_rev = torch.flip(Y, dims=[1]) and Y_rev = torch.flip(X, dims=[1]), then train the reverse direction with a smaller auxiliary cross-entropy weight. After warmup_iters, and only every hindsight_interval iterations to limit overhead, align detached reverse logits to forward targets: reverse position T-2-t predicts the same character as forward target Y[:, t], so skip the final forward position. Add a temperature-scaled KL loss from the aligned reverse-context teacher distribution to the forward logits, optionally weighting positions by low reverse entropy. Optimize total_loss = forward_ce + reverse_loss_weight * reverse_ce + alpha_t * hindsight_temperature^2 * hindsight_KL, with alpha_t ramped after warmup. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed strictly forward-direction only. Add diagnostics for reverse validation loss, forward-reverse KL, teacher entropy, validation loss stratified by teacher confidence, calibration by confidence bucket, and training-time overhead. Compare the baseline against hindsight_distill_weight values 0.03, 0.05, and 0.1, with and without confidence weighting, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "distance_band_sensitivity_smoothing",
+        "Title": "Distance-Band Sensitivity Smoothing for Robust Autoregressive Context Use",
+        "Experiment": "Modify GPT.forward to optionally accept input_embeds_override while preserving the existing logits, loss, validation, generation, and final reporting behavior. In the training loop, keep ordinary next-character cross-entropy on clean X,Y as the primary objective. After warmup_iters and every sensitivity_interval iterations, run one auxiliary consistency pass on a small sub-batch. First compute clean logits with no gradients flowing into the consistency target. Then build token embeddings for the same inputs, sample one causal prefix distance band such as 64-128 or 128-256 tokens before each prediction position, add small Gaussian embedding perturbations only inside the selected older band, and preserve the most recent preserve_recent tokens. Run the model on the perturbed embeddings and compute a temperature-scaled KL loss from detached clean logits to perturbed logits only on suffix positions whose selected band is valid. Train with total_loss = clean_loss + alpha_t * sensitivity_loss, ramping alpha_t after warmup. Keep estimate_loss, best validation loss, inference speed, and generation based on the ordinary clean model. Add diagnostics for clean validation loss, validation loss under distance-banded embedding perturbations, old-prefix token corruption, distractor-prefix replacement, sensitivity by distance band, train-validation gap, total training time, and generated samples. Compare the baseline against alpha values 0.03 and 0.1, perturbation scales 0.02 and 0.05 times embedding RMS, and preserve_recent values 32 and 64 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "persistent_gradient_projection",
+        "Title": "Persistent Gradient Projection for Low-Noise Autoregressive Language Model Training",
+        "Experiment": "Add an optional optimizer-side persistent gradient projection filter to the existing training loop. Introduce settings such as use_persistent_gradient_projection, grad_ema_beta, projection_strength, projection_ramp_iters, min_projection_cosine, and min_projected_params. After scaler.scale(loss).backward(), call scaler.unscale_(optimizer) once before gradient clipping when the filter is active. Maintain one detached slow EMA buffer per trainable parameter tensor using the current unscaled gradient. After warmup_iters, ramp projection_strength from 0 to its target value. For each sufficiently large parameter tensor, compute the cosine similarity between the current gradient g and the bias-corrected EMA direction e. If the cosine exceeds min_projection_cosine, decompose g into a parallel component along e and an orthogonal residual, then replace the gradient with g_parallel + (1 - projection_strength_t * cosine) * g_orthogonal. If the tensor is small or agreement is low, leave its gradient unchanged. Keep the GPT architecture, data loader, objective, validation, generation, and final reporting unchanged. Compare baseline AdamW against projection settings with grad_ema_beta values 0.98 and 0.995 and projection_strength values 0.25, 0.5, and 0.75 across shakespeare_char, enwik8, and text8. Include a simple control that adds the gradient EMA like extra momentum without orthogonal projection. Report best validation loss, convergence speed, train-validation gap, total train time, inference tokens per second, generated samples, layerwise gradient-EMA cosine agreement, and effective update norm.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "frequency_bucketed_cipher_consistency",
+        "Title": "Frequency-Bucketed Cipher Consistency for Symbol-Robust Character Language Models",
+        "Experiment": "Add a training-only frequency-bucketed substitution-cipher consistency objective. Before training, compute unigram token frequencies from train.bin and partition vocabulary IDs into a small number of frequency buckets, such as 4 or 8. Implement helpers to sample a random permutation within each bucket, apply it to X and Y, and inverse-permute logits back to the original vocabulary order. In the training loop, keep the ordinary clean forward pass and next-character cross-entropy as the primary loss. After warmup_iters, with probability p_t ramped to values such as 0.25 or 0.5, run a second forward pass on X_perm,Y_perm. Add a small auxiliary objective: permuted-target cross-entropy plus a temperature-scaled KL consistency loss between detached clean logits and inverse-permuted cipher logits at matching positions. Use auxiliary weights such as 0.05 and 0.1 so clean language modeling remains dominant. Keep estimate_loss, validation, generation, final reporting, and inference speed on the original unpermuted vocabulary. Add diagnostics for validation loss under fixed frequency-bucketed ciphers, full-random-cipher robustness as a stress test, rare-character validation loss, calibration by confidence bucket, and generated samples. Compare the baseline against bucketed cipher consistency with p=0.25 and p=0.5, plus ablations using full random ciphers and permuted cross-entropy without KL, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "latent_context_resets",
+        "Title": "Latent Context Reset Gates for Content-Adaptive Causal Attention",
+        "Experiment": "Extend GPTConfig with use_latent_context_resets, reset_strength, reset_budget_weight, target_reset_rate, reset_ramp_iters, and reset_temperature. Modify Block to include a small reset_gate_head, for example nn.Linear(n_embd, 1), applied to ln_1(x) before attention. Modify CausalSelfAttention.forward to optionally accept reset_probs and reset_strength_current. When reset gates are active, use the manual attention path and add a soft barrier penalty to causal attention logits: for query position t and key position s <= t, compute the cumulative reset probability over positions s+1 through t using cumsum(reset_probs), then add -reset_strength_current * barrier to the attention logit before softmax. Keep the ordinary next-character cross-entropy objective, optimizer, validation, generation, and sampling unchanged. In the training loop, ramp reset_strength_current from 0 to reset_strength after warmup_iters and add reset_budget_weight * (mean_reset_prob - target_reset_rate)^2 to the loss, averaging reset probabilities over layers, batch examples, and positions. Compare the baseline, a manual-attention no-reset control, learned reset gates with target_reset_rate values such as 0.02, 0.05, and 0.10, and a simple distance-decay attention control with matched average attenuation. Report best validation loss, convergence speed, total train time, inference tokens per second, generated samples, learned reset rate, reset entropy, attention mass crossing reset boundaries, cropped-context validation losses at 64 and 128 tokens, and distractor-prefix robustness across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "orthogonal_context_factorization",
+        "Title": "Orthogonal Context Factorization for Robust Character Language Modeling",
+        "Experiment": "Extend GPTConfig with use_context_factorization, context_factor_dim, context_factor_loss_weight, context_orth_weight, and context_factor_ramp_iters. In GPT.__init__, add an identity-initialized predictive_adapter mapping n_embd to n_embd, a context_proj mapping n_embd to context_factor_dim, and two small auxiliary heads from the context stream: one predicts a coarse absolute position bucket and one predicts the previous-occurrence distance bucket of the current input token, both computed causally from idx only. In GPT.forward, after ln_f compute h_pred = predictive_adapter(hidden) and h_ctx = context_proj(hidden). Use h_pred with the existing tied lm_head for the ordinary next-character logits, validation, and generation. During training, add the two context-descriptor cross-entropy losses from h_ctx plus an orthogonality penalty equal to the squared cross-covariance between centered sampled h_pred and h_ctx activations. Train with total_loss = next_token_loss + alpha_t * context_loss + beta_t * orthogonality_loss, ramping alpha_t and beta_t after warmup_iters. Keep estimate_loss, final reporting, inference speed, and generated samples based on ordinary next-character loss. Add diagnostics for clean validation loss, cropped-context validation at 64 and 128 tokens, context-head accuracies, predictive-stream position leakage via a lightweight probe, cross-covariance magnitude, calibration, parameter overhead, and adapter deviation from identity. Compare the baseline against context_factor_dim values 64 and 128 with context_factor_loss_weight values 0.02 and 0.05, plus ablations with context heads but no orthogonality and orthogonality with only the position-bucket head across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "suffix_continuation_attention_bias",
+        "Title": "Causal Suffix-Continuation Attention Biases for In-Context Character Retrieval",
+        "Experiment": "Add an optional strictly causal suffix-continuation bias to attention. Extend GPTConfig with use_suffix_continuation_bias, suffix_match_max_len, suffix_match_window, and suffix_bias_scale. Implement build_suffix_continuation_bias(idx, max_len, window), returning an additive attention bias where query position t receives positive bias toward key position c only when c < t and the suffix ending at t matches the earlier suffix ending at c - 1; the key c is therefore the visible continuation that followed the earlier matching context. Normalize match length by max_len, mask out invalid/self/future positions, and compute the bias once per forward pass from idx only. Modify CausalSelfAttention.forward to accept this bias and use the manual attention path when enabled, adding per-layer per-head learned scalar gates initialized to zero so training starts as the baseline. Keep the ordinary next-character cross-entropy objective, optimizer, estimate_loss, generation, and final reporting unchanged. Compare the flash-attention baseline, a manual-attention no-bias control, and suffix-continuation bias variants with max_len values 4 and 8 and windows 64 and 128 across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total train time, inference tokens per second, learned gate values, attention mass on matched continuations, validation loss stratified by whether a matching suffix continuation exists, and generated repetition/copy diagnostics.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "causal_replaced_token_detection",
+        "Title": "Causal Replaced-Token Detection for Exposure-Robust Character Language Models",
+        "Experiment": "Add a training-only causal replaced-token detection auxiliary task. Extend GPTConfig with use_replaced_token_detection, rtd_loss_weight, rtd_corruption_prob, rtd_ramp_iters, rtd_temperature, rtd_top_k, and rtd_interval. Modify GPT.__init__ to add rtd_head = nn.Linear(n_embd, 1), and modify GPT.forward to optionally return final hidden states after ln_f while preserving the ordinary logits, loss, validation, generation, and final reporting behavior. In the training loop, compute the standard clean forward pass on X,Y and optimize ordinary next-character cross-entropy as the primary loss. After warmup_iters and only every rtd_interval iterations, use detached clean logits from positions 0 through T-2 to sample plausible replacements for X[:, 1:], since logit position t-1 causally predicts input token X[:, t]. Apply optional top-k truncation and temperature, avoid replacing a token with itself, and replace eligible positions with probability ramped up to rtd_corruption_prob. Run a second forward pass on X_corrupt for hidden states only, predict the binary replacement mask from rtd_head(hidden_corrupt), and add a balanced BCEWithLogits loss: total_loss = clean_ce_loss + alpha_t * rtd_loss. Do not apply next-token cross-entropy to corrupted inputs. Keep estimate_loss, best validation loss, generation, final_info, and inference speed based only on the clean lm_head. Add diagnostics for RTD accuracy/AUROC, clean validation loss, validation loss under model-sampled corrupted prefixes, train-time overhead, and generated repetition metrics. Compare the baseline against rtd_corruption_prob values 0.05 and 0.10 with rtd_loss_weight values 0.05 and 0.1, plus a simple ablation using uniform random replacements instead of model-sampled near misses across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "causal_fast_weight_memory",
+        "Title": "Causal Fast-Weight Memories for Content-Addressed Autoregressive State",
+        "Experiment": "Add an optional residual fast-weight memory branch to selected Transformer blocks. Extend GPTConfig with use_fast_weight_memory, fast_weight_layers, fast_weight_key_dim, fast_weight_value_dim, fast_weight_gate_init, and fast_weight_decay. Implement a CausalFastWeightMemory module that projects normalized hidden states to queries, keys, and values, applies a positive feature map such as elu(x)+1 to queries and keys, builds an exclusive causal prefix memory by cumulatively summing key-value outer products from positions strictly before the current position, retrieves with normalized linear attention, projects the retrieved value back to n_embd, and applies dropout. In Block.__init__, add ln_fast, fast_memory, and a learnable scalar gate logit initialized so sigmoid(gate) is near fast_weight_gate_init, for example 0.05. In Block.forward, insert x = x + sigmoid(fast_gate) * fast_memory(ln_fast(x)) after attention and before the MLP for enabled layers. Keep the standard next-character cross-entropy objective, optimizer, validation, generation, and final reporting unchanged. Compare the baseline against fast-weight memory in the lower half of layers as the main setting, with key/value dimensions 32 or 64, and include an all-layer ablation plus optional decay values 1.0 and 0.99. Report best validation loss, convergence speed, total train time, inference tokens per second, parameter overhead, learned gate values, generated samples, and validation loss stratified by whether the target token previously appeared in the visible context. The hypothesis is that a small internal content-addressed memory improves recurrence-sensitive prediction and in-context binding without requiring an output-time cache or external data.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "ambiguous_suffix_negatives",
+        "Title": "Ambiguous Suffix Negatives for Long-Context Disambiguation",
+        "Experiment": "Before training each dataset, build a train-only ambiguous suffix table from train.bin. For suffix lengths such as 4 and 8, map each observed suffix to its most frequent next-character continuations, and keep only suffixes with at least two distinct continuations. Keep the GPT architecture, optimizer, validation, generation, and ordinary next-character cross-entropy unchanged. In the training loop, after warmup_iters and every suffix_negative_interval iterations, sample a bounded number of batch-time positions. For each position, look up the longest available suffix ending at the current input token, choose up to k locally plausible alternative continuations from the suffix table excluding the true target, and compute an auxiliary candidate-set contrastive loss over the full-context logits: cross-entropy where the candidates are the true next token plus the sampled suffix-matched negatives. Train with total_loss = next_token_loss + alpha_t * suffix_negative_loss, ramping alpha_t after warmup. Keep estimate_loss and final reporting based on ordinary validation cross-entropy. Add diagnostics for suffix-table coverage, valid negative positions per batch, candidate-set accuracy, validation loss stratified by ambiguous versus unambiguous suffixes, cropped-context validation losses at 64 and 128 tokens, total train time, inference tokens per second, and generated samples. Compare the baseline against suffix lengths [4], [8], and [4,8], negative counts k in {1,4}, and contrast weights 0.02, 0.05, and 0.1 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "predictive_state_distillation",
+        "Title": "Train-Only Predictive State Distillation for Character Language Models",
+        "Experiment": "Before training each dataset, scan train.bin only and count suffix-to-next-character statistics for causal context lengths 1 through 5. Retain only suffixes above a minimum count threshold, capped to the most frequent contexts for enwik8 and text8. Convert each retained suffix into a smoothed top-k continuation probability vector over the dataset vocabulary, then cluster these vectors into num_predictive_states empirical predictive states using simple NumPy k-means. Store a mapping from each retained suffix to its cluster ID. Extend GPTConfig with use_predictive_state_aux, num_predictive_states, predictive_state_loss_weight, predictive_state_ramp_iters, max_state_context_len, and min_state_context_count. Add predictive_state_head = nn.Linear(n_embd, num_predictive_states) in GPT.__init__, and modify GPT.forward to optionally return final hidden states while preserving the standard lm_head logits and ordinary next-character cross-entropy. In the training loop, build predictive_state_targets for each batch position by looking up the longest retained visible suffix ending at the current input token, using ignore_index when no reliable suffix is found. After warmup_iters, ramp alpha_t to predictive_state_loss_weight and optimize total_loss = next_token_loss + alpha_t * predictive_state_cross_entropy. Keep estimate_loss, best validation loss, generation, final_info, and inference speed based only on ordinary next-character prediction. Add diagnostics for state-target coverage, predictive-state accuracy, validation loss on covered versus uncovered contexts, validation loss on rare contexts, and cluster entropy. Compare the baseline against num_predictive_states values such as 64, 128, and 256 with predictive_state_loss_weight values 0.02 and 0.05 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "elastic_structured_pruning",
+        "Title": "Elastic Structured Pruning Distillation for Width-Robust Character Transformers",
+        "Experiment": "Add optional nested structured width masks to the Transformer while keeping tensor shapes unchanged. Extend GPTConfig with use_elastic_pruning, elastic_width_choices, elastic_distill_weight, elastic_ce_weight, elastic_temperature, elastic_ramp_iters, and elastic_interval. In each attention and MLP module, create fixed random nested mask orders so smaller subnetworks keep consistent per-layer subsets without always favoring low-index heads or channels. Modify CausalSelfAttention.forward to accept an optional head_keep_frac and zero inactive attention heads before reassembling the head outputs. Modify MLP.forward to accept an optional mlp_keep_frac and zero inactive intermediate channels after GELU and before the output projection. In GPT.forward and Block.forward, accept width_mult and pass the corresponding keep fractions through all layers, with width_mult=1.0 exactly reproducing the baseline. In the training loop, compute the ordinary full-width forward pass and standard next-character cross-entropy. After warmup_iters, every elastic_interval iterations, sample width_mult from values such as [0.5, 0.75], run a second masked forward pass on the same batch, and add a ramped auxiliary loss combining temperature-scaled KL distillation from detached full-width logits to masked logits plus a small masked-subnetwork cross-entropy term. Keep normal validation, generation, and final reporting full-width for comparability, and add validation probes at width_mult values 1.0, 0.75, and 0.5. Compare against a baseline model evaluated with the same masks after training. Report best full-width validation loss, masked-subnetwork validation losses, degradation relative to full width, convergence speed, total train time, generated samples, robustness to structured pruning, and a theoretical compute proxy based on active heads and MLP channels across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "lag_queried_past_recall",
+        "Title": "Lag-Queried Past Recall for Addressable Causal Context Representations",
+        "Experiment": "Add a sparse training-only auxiliary objective that asks each final hidden state to recover earlier input tokens when queried by a relative lag. Extend GPTConfig with use_past_recall, past_recall_lags, past_recall_anchors, past_recall_loss_weight, and past_recall_ramp_iters. In GPT.__init__, add a learned lag embedding table for lags such as [2, 4, 8, 16, 32, 64, 128], a small MLP that combines hidden_t with the selected lag embedding, and a past_recall_head projecting to vocab_size. Modify GPT.forward to optionally return final hidden states after ln_f while preserving the standard lm_head logits and next-character cross-entropy behavior. During training after warmup_iters, sample a bounded number of valid anchor-lag pairs with t >= lag, use idx[:, t - lag] as the target, and compute cross-entropy from the lag-conditioned recall head. Balance the sampled pairs across short, medium, and long lags so nearby tokens do not dominate. Optimize total_loss = next_token_loss + alpha_t * past_recall_loss, ramping alpha_t to past_recall_loss_weight. Keep estimate_loss, clean validation, generation, final_info, and inference speed based only on ordinary next-character prediction. Add diagnostics for recall accuracy by lag, validation loss stratified by whether the next token appeared in the recent context, cropped-context validation losses at 64 and 128 tokens, generated repetition/copy metrics, and auxiliary parameter overhead. Compare the baseline against multi-scale lags [2,4,8,16,32,64,128], short-only lags [2,4,8,16], long-only lags [32,64,128], and a shuffled-lag-target control with loss weights 0.02 and 0.05 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "future_spectral_codes",
+        "Title": "Future Spectral Code Prediction for Ordered Long-Horizon Autoregressive Supervision",
+        "Experiment": "Add a training-only auxiliary objective that asks each hidden state to predict a compact ordered sketch of its near-future continuation. Extend GPTConfig with use_future_spectral_codes, spectral_window, spectral_code_dim, spectral_num_coeffs, spectral_loss_weight, spectral_ramp_iters, and spectral_sample_positions. In GPT.__init__, register two frozen buffers when enabled: a deterministic random token-code table of shape vocab_size by spectral_code_dim, normalized per token, and a fixed DCT basis over spectral_window future offsets, keeping only the first spectral_num_coeffs low-frequency coefficients. Add future_spectral_head = nn.Linear(n_embd, spectral_num_coeffs * spectral_code_dim). In GPT.forward, keep the standard lm_head and next-character cross-entropy unchanged. During training, sample a bounded number of valid batch-time positions, build future code windows from targets[:, t:t+spectral_window], project each window through the fixed DCT basis, and train the auxiliary head with mean squared error on the resulting coefficients. Optimize total_loss = next_token_loss + alpha_t * spectral_loss, where alpha_t ramps from 0 to spectral_loss_weight after warmup_iters. Keep estimate_loss, validation, generation, final reporting, and inference speed based only on ordinary next-character prediction. Add diagnostics for spectral prediction error by coefficient index, parameter overhead, and generated repetition rates. Compare the baseline against spectral_window values 16 and 32, spectral_num_coeffs values 4 and 8, and spectral_loss_weight values 0.02 and 0.05 across shakespeare_char, enwik8, and text8. Include an unordered future-code averaging ablation to test whether ordered spectral structure is useful.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "gated_causal_context_norm",
+        "Title": "Gated Causal Context Normalization for Prefix-Relative Autoregressive Representations",
+        "Experiment": "Extend GPTConfig with use_causal_context_norm, context_norm_window, context_norm_layers, context_norm_gate_init, and context_norm_eps. Implement a CausalContextNorm module that receives hidden states of shape B by T by C and computes per-feature causal mean and variance using only visible positions up to each timestep. Support either full-prefix statistics or a fixed recent window using cumulative sums, with a variance floor for early-token stability. In Block.__init__, add an optional LayerNorm, the CausalContextNorm module, a Linear projection back to n_embd, dropout, and a learnable scalar gate initialized to a small value such as 0.01. In Block.forward, insert the branch after attention and before the MLP: x = x + gate * dropout(proj(causal_context_norm(ln_ctx(x)))). Keep the standard next-character cross-entropy objective, optimizer, validation, generation, and final reporting unchanged. Compare the baseline against causal context normalization in all layers and in only the lower half of layers, using full-prefix statistics and a fixed window such as 128. Report best validation loss, convergence speed, total training time, inference tokens per second, generated samples, parameter overhead, learned gate values, activation variance diagnostics, and cropped-context validation losses at 64 and 128 tokens across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "dropout_stress_consistency",
+        "Title": "Dropout Stress Consistency for Subnetwork-Robust Autoregressive Language Models",
+        "Experiment": "Add a training-only consistency regularizer between a normal dropout forward pass and a stronger dropout stress forward pass of the same clean batch. Modify GPT.forward, Block.forward, CausalSelfAttention.forward, and MLP.forward to accept an optional dropout_scale argument that temporarily multiplies existing dropout probabilities, capped below 1.0, while leaving eval-mode behavior unchanged. In the training loop, compute the ordinary forward pass on X,Y with dropout_scale=1.0 and optimize its standard next-character cross-entropy as the primary loss. After warmup_iters, run a second forward pass on the same X,Y with dropout_scale values such as 1.5 or 2.0. Add a temperature-scaled KL loss from the detached normal-pass distribution to the stressed-pass distribution, weighted per token by detached confidence from the normal pass, for example 1 minus normalized entropy, with weights normalized to mean 1 over valid positions. Ramp the consistency weight from 0 to alpha over 1000 iterations after warmup. Keep estimate_loss, best validation loss, final_info, generation, and inference speed based on the ordinary eval-mode model with no dropout. Add diagnostics for normal-versus-stressed agreement, validation calibration, MC-dropout validation loss, and validation loss under forced dropout stress. Compare the baseline against alpha values 0.03 and 0.1 with dropout_scale values 1.5 and 2.0, plus an unweighted consistency ablation, across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "successor_distribution_td",
+        "Title": "Temporal-Difference Successor Distributions for Autoregressive Representation Learning",
+        "Experiment": "Extend GPTConfig with use_successor_distribution, successor_gammas, successor_loss_weight, and successor_ramp_iters. In GPT.__init__, add one linear successor head per discount factor, mapping final hidden states after ln_f to vocab_size logits. Modify GPT.forward to optionally return successor logits while preserving the standard lm_head logits and ordinary next-character cross-entropy behavior. In the training loop, keep next-token cross-entropy as the primary loss. After warmup_iters, ramp the auxiliary weight and train each successor head with a detached Bellman-style target: for positions 0 through T-2, target_dist = (1 - gamma) * one_hot(targets[:, t]) + gamma * softmax(successor_logits[:, t + 1]).detach(), and minimize soft cross-entropy from successor_logits[:, t] to this target. Use the immediate one-hot target or ignore_index handling for tail positions. Keep estimate_loss, best validation loss, generation, final reporting, and inference speed based only on the ordinary lm_head. Add diagnostics for successor TD loss, successor entropy, agreement with empirical finite-window future histograms, and validation loss stratified by whether the next token recurs soon. Compare the baseline against successor_gammas=[0.8] and [0.5, 0.9] with successor_loss_weight values 0.02 and 0.05 across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": true
+    },
+    {
+        "Name": "output_substitution_laplacian",
+        "Title": "Train-Derived Output Substitution Geometry for Character Language Models",
+        "Experiment": "Before training each dataset, scan train.bin only and build a sparse character substitution graph. For each target character, accumulate counts of hashed causal suffix contexts of lengths 1 through 4 that preceded it. Convert these counts into smoothed, frequency-corrected context vectors, for example using log count ratios or positive PMI-style weighting, and ignore characters below a small minimum count threshold. Compute cosine similarities between normalized character context vectors, keep top-k neighbors per character such as k=4 or k=8, and symmetrize the resulting weighted graph. Keep the GPT architecture, data loader, ordinary next-character cross-entropy, validation, generation, and final reporting unchanged. During training, after warmup_iters, add a ramped degree-normalized Laplacian regularizer on the tied lm_head rows: for each graph edge i,j with weight s_ij, penalize s_ij * ||normalize(w_i) - normalize(w_j)||^2, scaled by small weights such as 1e-4, 3e-4, and 1e-3. Compare against the baseline and controls using random neighbors, unigram-frequency neighbors, and an unsymmetrized graph. Report best validation loss, convergence speed, train-validation gap, rare-character validation loss, generated samples, output-neighbor alignment with the train-derived graph, and inference tokens per second across shakespeare_char, enwik8, and text8.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 7,
+        "novel": false
+    },
+    {
+        "Name": "predictive_information_bottleneck",
+        "Title": "Predictive Information Bottlenecks for Compressible Autoregressive States",
+        "Experiment": "Modify GPT.forward to optionally return final hidden states after ln_f while preserving the standard logits and next-character cross-entropy behavior. Extend GPTConfig with use_predictive_bottleneck, bottleneck_dim, bottleneck_loss_weight, bottleneck_kl_weight, bottleneck_kl_free_bits, bottleneck_sample_positions, and bottleneck_ramp_iters. In GPT.__init__, add a compact auxiliary bottleneck module: LayerNorm, Linear(n_embd, 2 * bottleneck_dim) producing mu and logvar, Linear(bottleneck_dim, n_embd) decoding back to n_embd, and an optional LayerNorm before reusing the existing tied lm_head. During training after warmup_iters, sample a bounded number of batch-time positions, draw z with the reparameterization trick, decode z, and compute auxiliary next-character cross-entropy through the tied lm_head on the corresponding targets. Add a ramped free-bits KL penalty such as mean(relu(KL_per_token - bottleneck_kl_free_bits)) so the latent is compressed without strongly encouraging collapse. Optimize total_loss = next_token_loss + alpha_t * bottleneck_ce + beta_t * kl_budget_loss. Keep estimate_loss, best validation loss, final reporting, generation, and inference speed based only on the ordinary lm_head. Add diagnostics for deterministic bottleneck validation loss using mu, KL per token, active latent dimensions, train-validation gap, and calibration by confidence bucket. Compare bottleneck_dim values 64, 128, and 256 with bottleneck_loss_weight values 0.05 and 0.1 across shakespeare_char, enwik8, and text8, including controls with a deterministic low-rank bottleneck and with KL disabled.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "soft_tied_output_embeddings",
+        "Title": "Soft-Tied Output Embeddings for Flexible Character Language Modeling",
+        "Experiment": "Modify GPT to support three output-embedding modes: hard tied, untied, and soft low-rank tied. Extend GPTConfig with output_tie_mode, output_delta_rank, and output_delta_l2_weight. For output_tie_mode='hard', keep the existing tied embedding behavior. For output_tie_mode='untied', use an independent lm_head as a simple capacity control. For output_tie_mode='soft_low_rank', compute logits with W_out = W_in + A @ B, where W_in is the input embedding table, A has shape vocab_size by output_delta_rank, B has shape output_delta_rank by n_embd, A is small-random initialized, and B is zero-initialized so training begins exactly at the hard-tied model. Add a small training-only L2 penalty on A @ B to keep the residual correction controlled, while validation loss remains ordinary next-character cross-entropy. Route all output logits through a helper so generation, validation, optimizer setup, and final reporting remain otherwise unchanged. Compare hard tied, untied, and soft-low-rank variants with ranks 4, 8, 16, and 32 across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total train time, inference tokens per second, parameter overhead, residual norm, input-output embedding cosine similarity, rare-character validation loss, and generated samples.",
+        "Interestingness": 7,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "boundary_rewindow_consistency",
+        "Title": "Boundary Re-Windowing Consistency for Fixed-Context Autoregressive Training",
+        "Experiment": "Add a get_rewindow_batch helper that samples a raw span of length block_size + offset + 1, where offset is sampled from values such as 32, 64, and 128. Construct two overlapping views: X_base,Y_base from the first block_size tokens and X_shift,Y_shift from the span starting at offset. Base logits at positions offset:block_size align with shifted logits at positions 0:block_size-offset because they predict the same next characters from different window boundaries. Keep the ordinary next-character cross-entropy on X_base,Y_base as the primary objective. After warmup_iters and every rewindow_interval iterations, run the shifted view as an auxiliary forward pass and add a temperature-scaled KL consistency loss from detached base-view logits to shifted-view logits on aligned positions, ignoring the first burn_in shifted positions and weighting by detached base-view confidence. Ramp the consistency weight to alpha values such as 0.03, 0.05, and 0.1. Keep validation, generation, final reporting, and inference speed unchanged. Add diagnostics for clean validation loss, overlap KL at fixed offsets, validation loss by absolute block position, and true-token NLL gaps between base and shifted views. Compare against the baseline across shakespeare_char, enwik8, and text8 using best validation loss, convergence speed, total training time, inference tokens per second, generated samples, and boundary-robustness diagnostics.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "zero_init_relative_bias",
+        "Title": "Zero-Initialized Learned Relative Distance Biases for Small Character Transformers",
+        "Experiment": "Extend GPTConfig with position_encoding choices such as 'absolute', 'relative_bias', and 'absolute_relative_bias', plus relative_num_buckets and relative_max_distance. Modify CausalSelfAttention to optionally use the manual attention path and add a learned per-head relative-distance bias table to causal attention logits before softmax. Build a T by T causal distance matrix query_index - key_index, map distances into exact buckets for small lags and logarithmic buckets for larger lags, and look up a bias table of shape n_head by relative_num_buckets. Initialize the relative bias table to zero so training begins exactly at the corresponding no-relative-bias model while gradients still flow into the table. In GPT.forward, use learned absolute position embeddings only for variants whose position_encoding includes 'absolute'. Keep the standard next-character cross-entropy objective, optimizer, validation, generation, and final reporting unchanged. Compare the original flash-attention absolute baseline, a manual-attention absolute control, relative-bias-only, and absolute+relative variants across shakespeare_char, enwik8, and text8. Report best validation loss, convergence speed, total training time, inference tokens per second, parameter overhead, cropped-context validation losses at 64 and 128 tokens, learned relative-bias magnitudes, and learned distance-bias curves by layer and head.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "first_order_prefix_meta_adapters",
+        "Title": "First-Order Prefix Meta-Adaptation for Locally Nonstationary Character Language Models",
+        "Experiment": "Add optional low-rank residual adapters to Transformer blocks, for example after the MLP residual, with zero-initialized output projections so training starts close to the baseline. Keep the ordinary next-character cross-entropy on full 256-token training batches as the primary objective. After warmup_iters and every meta_interval iterations, create a self-supervised adaptation episode by splitting each batch into a 128-token prefix and a 128-token suffix. Compute prefix loss using only the prefix tokens, take one first-order SGD update on adapter parameters only, then run a suffix forward pass with the temporary adapted adapter parameters and add alpha_t * suffix_meta_loss to the ordinary LM loss. Implement this with torch.func.functional_call or a small adapter fast-weight override path, treating the inner update as first-order and disabling torch.compile for this variant if needed. Keep estimate_loss, best validation loss, generation, final_info, and inference speed based on the unadapted model for direct comparability. Add validation diagnostics that report no-adaptation suffix loss, prefix-adapted suffix loss after 1 to 3 adapter-only steps, mismatched-prefix adaptation as a negative control, adaptation overhead, adapter parameter count, and generated samples after adapting on a prompt prefix. Compare the baseline, ordinary adapters without meta-training, and first-order prefix-meta adapters across shakespeare_char, enwik8, and text8, with small ablations over adapter rank, inner learning rate, meta loss weight, and prefix length.",
+        "Interestingness": 9,
+        "Feasibility": 8,
+        "Novelty": 7,
+        "novel": false
+    }
+]

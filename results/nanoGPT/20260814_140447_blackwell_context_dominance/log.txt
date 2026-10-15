@@ -1,0 +1,33 @@
+2026-08-14 14:04:47
+*Starting idea: 20260814_140447_blackwell_context_dominance*
+2026-08-14 14:04:47
+*Starting Experiments*
+Error during experiments: Codex coder failed with exit code 1: ext_dominance/plot.py
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_140447_blackwell_context_dominance/notes.txt
+
+Follow the user's request by editing the relevant files directly. Keep edits focused.
+Do not run long training jobs. Quick syntax checks or tiny inspections are fine.
+If the prompt asks you to finish by saying ALL_COMPLETED, only say it when the
+experiment plan is genuinely complete.
+
+User request:
+Your goal is to implement the following idea: Blackwell Context-Dominance Regularization for Non-Interfering Long-Context Language Models.
+The proposed experiment is as follows: Keep the GPT architecture, data loader, optimizer, ordinary next-character cross-entropy objective, evaluation, and generation path unchanged. After loading each dataset, scan train.bin once to compute unigram frequencies and create fixed unigram-balanced random binary event matrices, with one bank for training and a disjoint bank for diagnostics, using num_events such as 16 or 32. In the training loop, always compute ordinary full-context logits and CE on X,Y. After warmup_iters and every dominance_interval iterations, run one additional short-context forward on X[:, -L:], Y[:, -L:] with L such as 64 or 128, and align the final L positions of the full-context logits with the short-context logits. Add an event_context_dominance_loss helper that converts logits to probabilities, sums probability mass for each binary event, derives event labels from the true targets, and computes binary cross-entropy for full and short contexts. Add a small ramped hinge penalty mean(relu(full_event_bce - detach(short_event_bce) - margin)), so full-context predictions are discouraged from being worse than short-context predictions on coarse predictive decisions without directly distilling the short distribution. Extend estimate_loss to report ordinary validation loss at context lengths 32, 64, 128, and 256, train-bank and held-out-bank event dominance violation rates, mean full-versus-short event regret, true-token negative-context-interference rate, expected calibration error, train-val gap, total train time, and unchanged full-context generation tokens per second. Compare against the baseline, true-token matched-context monotonicity, full-to-short KL consistency, and shuffled event-label controls across shakespeare_char, enwik8, and text8..
+You are given a total of up to 5 runs to complete the necessary experiments. You do not need to use all 5.
+
+First, plan the list of experiments you would like to run. For example, if you are sweeping over a specific hyperparameter, plan each value you would like to test for each run.
+
+Note that we already provide the vanilla baseline results, so you do not need to re-run it.
+
+For reference, the baseline results are as follows:
+
+{'shakespeare_char': {'final_train_loss_mean': 0.8063469330469767, 'best_val_loss_mean': 1.4675064484278362, 'total_train_time_mean': 180.74195313453674, 'avg_inference_tokens_per_second_mean': 378.57517791315746}, 'enwik8': {'final_train_loss_mean': 0.9353665113449097, 'best_val_loss_mean': 1.005397915840149, 'total_train_time_mean': 1160.2209112644196, 'avg_inference_tokens_per_second_mean': 379.5848228845526}, 'text8': {'final_train_loss_mean': 0.9992859363555908, 'best_val_loss_mean': 0.9796633124351501, 'total_train_time_mean': 1163.0113108158112, 'avg_inference_tokens_per_second_mean': 374.37565057725453}}
+
+After you complete each change, we will run the command `python experiment.py --out_dir=run_i' where i is the run number and evaluate the results.
+YOUR PROPOSED CHANGE MUST USE THIS COMMAND FORMAT, DO NOT ADD ADDITIONAL COMMAND LINE ARGS.
+You can then implement the next thing on your list.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Experiments failed for idea 20260814_140447_blackwell_context_dominance
+FINISHED IDEA

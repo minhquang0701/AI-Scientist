@@ -1,0 +1,28 @@
+2026-08-14 14:04:39
+*Starting idea: 20260814_140439_crop_state_marginal_distillation*
+2026-08-14 14:04:39
+*Starting Experiments*
+Error during experiments: Codex coder failed with exit code 1: aying ALL_COMPLETED, only say it when the
+experiment plan is genuinely complete.
+
+User request:
+Your goal is to implement the following idea: Crop-State Marginal Distillation for Boundary-Robust Character Language Modeling.
+The proposed experiment is as follows: Keep the default GPT training, evaluation, and generation path unchanged. Extend GPTConfig with train_seq_len, use_crop_state_marginalization, num_crop_states, num_crop_state_tokens, crop_burnin_len, crop_band_len, crop_state_gate_init, crop_interval, and lambda_crop_max. Add learned crop-state prefix embeddings of shape num_crop_states by num_crop_state_tokens by n_embd, a small prefix-position embedding table, and a CropStateEncoder that embeds and mean-pools only X[:, :crop_burnin_len] to predict log probabilities over crop states. Modify GPT.forward to optionally prepend one selected crop-state prefix before the real tokens, while real tokens keep their original position ids and prefix logits are discarded. In train(), always compute ordinary no-prefix next-character CE. After warmup_iters and every crop_interval iterations, take a scheduled subbatch, expand it over all crop states, run the prefixed forward pass, and score only post-burn-in boundary positions crop_burnin_len through crop_burnin_len + crop_band_len - 1. Combine encoder log probabilities and state-conditioned target log probabilities with logsumexp to form a crop-state marginal NLL. Also form a detached prior-weighted marginal predictive distribution over crop states for the same positions and add a small KL distillation term from this marginal distribution to the ordinary no-prefix logits, so the deployed path benefits from the latent crop-state teacher. Ramp the combined auxiliary weight while keeping ordinary CE dominant. Extend estimate_loss to report ordinary validation loss, post-burn-in boundary-band loss, interior loss, crop-marginal validation loss, no-prefix-to-marginal KL, boundary-to-interior loss gap, crop-state posterior entropy, state usage, train-val gap, total train time, and ordinary generation tokens per second. Compare the baseline, unconditional learned crop states, deterministic burn-in virtual prefixes, crop-state marginalization without distillation, crop-state marginal distillation, and a shuffled-burn-in encoder control across shakespeare_char, enwik8, and text8..
+You are given a total of up to 5 runs to complete the necessary experiments. You do not need to use all 5.
+
+First, plan the list of experiments you would like to run. For example, if you are sweeping over a specific hyperparameter, plan each value you would like to test for each run.
+
+Note that we already provide the vanilla baseline results, so you do not need to re-run it.
+
+For reference, the baseline results are as follows:
+
+{'shakespeare_char': {'final_train_loss_mean': 0.8063469330469767, 'best_val_loss_mean': 1.4675064484278362, 'total_train_time_mean': 180.74195313453674, 'avg_inference_tokens_per_second_mean': 378.57517791315746}, 'enwik8': {'final_train_loss_mean': 0.9353665113449097, 'best_val_loss_mean': 1.005397915840149, 'total_train_time_mean': 1160.2209112644196, 'avg_inference_tokens_per_second_mean': 379.5848228845526}, 'text8': {'final_train_loss_mean': 0.9992859363555908, 'best_val_loss_mean': 0.9796633124351501, 'total_train_time_mean': 1163.0113108158112, 'avg_inference_tokens_per_second_mean': 374.37565057725453}}
+
+After you complete each change, we will run the command `python experiment.py --out_dir=run_i' where i is the run number and evaluate the results.
+YOUR PROPOSED CHANGE MUST USE THIS COMMAND FORMAT, DO NOT ADD ADDITIONAL COMMAND LINE ARGS.
+You can then implement the next thing on your list.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Experiments failed for idea 20260814_140439_crop_state_marginal_distillation
+FINISHED IDEA

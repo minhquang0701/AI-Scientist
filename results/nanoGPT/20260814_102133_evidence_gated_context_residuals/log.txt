@@ -1,0 +1,2932 @@
+2026-08-14 10:21:33
+*Starting idea: 20260814_102133_evidence_gated_context_residuals*
+2026-08-14 10:21:33
+*Starting Experiments*
+Blocked: I could not edit the files because every local filesystem operation failed before reaching the repo:
+
+`bwrap: Creating new namespace failed: No space left on device`
+
+This affected both shell inspection and `apply_patch`, so no files were changed and I could not run syntax checks.
+
+Planned runs once the sandbox is fixed:
+
+- `run_1`: ungated residual prediction
+- `run_2`: post-hoc two-pass context-residual decoding
+- `run_3`: evidence-gated amortized residuals, `L=64`
+- `run_4`: evidence-gated amortized residuals with more frequent residual supervision
+- `run_5`: unused unless a follow-up sweep is needed
+
+I referenced the upstream AI-Scientist nanoGPT template structure from SakanaAI’s repo: https://github.com/SakanaAI/AI-Scientist/blob/main/templates/nanoGPT/experiment.py
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+
+Blocked: the execution sandbox cannot create its namespace, so both shell reads and `apply_patch` writes fail with:
+
+`bwrap: Creating new namespace failed: No space left on device`
+
+I was not able to edit `notes.txt` or implement Run 2. Do not run `python experiment.py --out_dir=run_2` yet from this state.
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+
+Blocked by the execution environment. Every shell command, including `true`, and `apply_patch` failed before file access with:
+
+```text
+bwrap: Creating new namespace failed: No space left on device
+```
+
+No files were modified: `experiment.py`, `plot.py`, and `notes.txt` are unchanged. I also did not implement a `run_3` change, because I could not safely inspect the current local experiment or notes.
+
+I briefly checked the public AI-Scientist nanoGPT template for orientation, but did not use it to overwrite local files: https://github.com/SakanaAI/AI-Scientist/blob/main/templates/nanoGPT/experiment.py
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py:463: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+
+BLOCKED: I could not read or edit the local files because every filesystem operation failed with:
+
+`bwrap: Creating new namespace failed: No space left on device`
+
+This affected both shell inspection and `apply_patch`, so `notes.txt` and `experiment.py` were not changed. Do not run `python experiment.py --out_dir=run_4` yet.
+
+I did not say `ALL_COMPLETED` because the requested notes update and Run 4 implementation were not completed. I only used the public nanoGPT template structure as fallback context: https://raw.githubusercontent.com/SakanaAI/AI-Scientist/main/templates/nanoGPT/experiment.py
+/n/fs/vision-mix/qd0037/conda_envs/ai_scientist/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/n/fs/vision-mix/qd0037/conda_envs/ai_scientist/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+
+2026-08-14 13:38:37
+*Starting Writeup*
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Error: Codex headless failed with exit code 1: offrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
+
+"""
+
+Identify the most important citation that you still need to add, and the query to find the paper.
+
+Respond in the following format:
+
+THOUGHT:
+<THOUGHT>
+
+RESPONSE:
+```json
+<JSON>
+```
+
+In <THOUGHT>, first briefly reason over the paper and identify where citations should be added.
+If no more citations are needed, add "No more citations needed" to your thoughts.
+Do not add "No more citations needed" if you are adding citations this round.
+
+In <JSON>, respond in JSON format with the following fields:
+- "Description": A precise description of the required edit, along with the proposed text and location where it should be made.
+- "Query": The search query to find the paper (e.g. attention is all you need).
+
+Ensure the description is sufficient to make the change without further context. Someone else will make the change.
+The query will work best if you are able to recall the exact name of the paper you are looking for, or the authors.
+This JSON will be automatically parsed, so ensure the format is precise.
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+Failed to perform writeup: Codex coder failed with exit code 1: WARNING: failed to clean up stale arg0 temp dirs: Directory not empty (os error 39)
+OpenAI Codex v0.148.0-alpha.9
+--------
+workdir: /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a00173-41a7-7c21-812b-c5f0d39ebf8f
+--------
+user
+You are the code-editing backend for AI-Scientist v1.
+Work inside this experiment directory:
+/auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals
+
+Editable files:
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/experiment.py
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/latex/template.tex
+- /auto/u/qd0037/SWM/AI-Scientist/results/nanoGPT/20260814_102133_evidence_gated_context_residuals/notes.txt
+
+Follow the user's request by editing the relevant files directly. Keep edits focused.
+Do not run long training jobs. Quick syntax checks or tiny inspections are fine.
+If the prompt asks you to finish by saying ALL_COMPLETED, only say it when the
+experiment plan is genuinely complete.
+
+User request:
+Great job! Now criticize and refine only the Related Work that you just wrote.
+Make this complete in this pass, do not leave any placeholders.
+
+Pay particular attention to fixing any errors such as:
+- Unenclosed math symbols
+- Only reference figures that exist in our directory
+- LaTeX syntax errors
+- Numerical results that do not come from explicit experiments and logs
+- Repeatedly defined figure labels
+- References to papers that are not in the .bib file, DO NOT ADD ANY NEW CITATIONS!
+- Unnecessary verbosity or repetition, unclear text
+- Results or insights in the `notes.txt` that have not yet need included
+- Any relevant figures that have not yet been included in the text
+- Closing any \begin{figure} with a \end{figure} and \begin{table} with a \end{table}, etc.
+- Duplicate headers, e.g. duplicated \section{Introduction} or \end{document}
+- Unescaped symbols, e.g. shakespeare_char should be shakespeare\_char in text
+- Incorrect closing of environments, e.g. </end{figure}> instead of \end{figure}
+
+
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 19th, 2026 11:32 PM.
+FINISHED IDEA

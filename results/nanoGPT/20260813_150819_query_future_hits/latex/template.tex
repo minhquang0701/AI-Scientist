@@ -1,0 +1,354 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2024_conference,times}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{titletoc}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\graphicspath{{../}} % To reference your generated figures, see below.
+\begin{filecontents}{references.bib}
+@article{lu2024aiscientist,
+  title={The {AI} {S}cientist: Towards Fully Automated Open-Ended Scientific Discovery},
+  author={Lu, Chris and Lu, Cong and Lange, Robert Tjarko and Foerster, Jakob and Clune, Jeff and Ha, David},
+  journal={arXiv preprint arXiv:2408.06292},
+  year={2024}
+}
+
+@book{goodfellow2016deep,
+  title={Deep learning},
+  author={Goodfellow, Ian and Bengio, Yoshua and Courville, Aaron and Bengio, Yoshua},
+  volume={1},
+  year={2016},
+  publisher={MIT Press}
+}
+
+@article{vaswani2017attention,
+  title={Attention is all you need},
+  author={Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  journal={Advances in neural information processing systems},
+  volume={30},
+  year={2017}
+}
+
+@article{karpathy2023nanogpt,
+  title = {nanoGPT},
+  author = {Karpathy, Andrej},
+  year = {2023},
+  journal = {URL https://github.com/karpathy/nanoGPT/tree/master},
+  note = {GitHub repository}
+}
+
+@article{kingma2014adam,
+  title={Adam: A method for stochastic optimization},
+  author={Kingma, Diederik P and Ba, Jimmy},
+  journal={arXiv preprint arXiv:1412.6980},
+  year={2014}
+}
+
+@article{ba2016layer,
+  title={Layer normalization},
+  author={Ba, Jimmy Lei and Kiros, Jamie Ryan and Hinton, Geoffrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+
+@Article{Brown2020LanguageMA,
+ author = {Tom B. Brown and Benjamin Mann and Nick Ryder and Melanie Subbiah and J. Kaplan and Prafulla Dhariwal and Arvind Neelakantan and Pranav Shyam and G. Sastry and Amanda Askell and S. Agarwal and Ariel Herbert-Voss and Gretchen Krueger and T. Henighan and R. Child and A. Ramesh and Daniel M. Ziegler and Jeff Wu and Clemens Winter and Christopher Hesse and Mark Chen and Eric Sigler and Ma-teusz Litwin and Scott Gray and Benjamin Chess and Jack Clark and Christopher Berner and Sam McCandlish and Alec Radford and I. Sutskever and Dario Amodei},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Language Models are Few-Shot Learners},
+ volume = {abs/2005.14165},
+ year = {2020}
+}
+
+
+@Inproceedings{Rocki2016SurprisalDrivenZ,
+ author = {K. Rocki and Tomasz Kornuta and Tegan Maharaj},
+ title = {Surprisal-Driven Zoneout},
+ year = {2016}
+}
+
+
+@Inproceedings{Mahoney2007TheRO,
+ author = {M. Mahoney},
+ title = {The Relationship of Machine Learning and Data Compression to Natural Language Processing : A Review},
+ year = {2007}
+}
+
+
+@Article{Srivastava2014DropoutAS,
+ author = {Nitish Srivastava and Geoffrey E. Hinton and A. Krizhevsky and I. Sutskever and R. Salakhutdinov},
+ booktitle = {Journal of machine learning research},
+ journal = {J. Mach. Learn. Res.},
+ pages = {1929-1958},
+ title = {Dropout: a simple way to prevent neural networks from overfitting},
+ volume = {15},
+ year = {2014}
+}
+
+
+@Article{Krueger2016ZoneoutRR,
+ author = {David Krueger and Tegan Maharaj and J'anos Kram'ar and M. Pezeshki and Nicolas Ballas and Nan Rosemary Ke and Anirudh Goyal and Yoshua Bengio and H. Larochelle and Aaron C. Courville and C. Pal},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations},
+ volume = {abs/1606.01305},
+ year = {2016}
+}
+
+
+@Article{Merity2017RegularizingAO,
+ author = {Stephen Merity and N. Keskar and R. Socher},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Regularizing and Optimizing LSTM Language Models},
+ volume = {abs/1708.02182},
+ year = {2017}
+}
+
+
+@Article{Melis2017OnTS,
+ author = {Gábor Melis and Chris Dyer and Phil Blunsom},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {On the State of the Art of Evaluation in Neural Language Models},
+ volume = {abs/1707.05589},
+ year = {2017}
+}
+
+
+@Article{Graves2016AdaptiveCT,
+ author = {Alex Graves},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Adaptive Computation Time for Recurrent Neural Networks},
+ volume = {abs/1603.08983},
+ year = {2016}
+}
+
+
+@Article{Mujika2017FastSlowRN,
+ author = {Asier Mujika and F. Meier and A. Steger},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Fast-Slow Recurrent Neural Networks},
+ volume = {abs/1705.08639},
+ year = {2017}
+}
+
+
+@Article{Dehghani2018UniversalT,
+ author = {Mostafa Dehghani and Stephan Gouws and O. Vinyals and Jakob Uszkoreit and Lukasz Kaiser},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Universal Transformers},
+ volume = {abs/1807.03819},
+ year = {2018}
+}
+
+
+@Article{Fan2019ReducingTD,
+ author = {Angela Fan and Edouard Grave and Armand Joulin},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Reducing Transformer Depth on Demand with Structured Dropout},
+ volume = {abs/1909.11556},
+ year = {2019}
+}
+
+
+@Article{Huang2016DeepNW,
+ author = {Gao Huang and Yu Sun and Zhuang Liu and Daniel Sedra and Kilian Q. Weinberger},
+ booktitle = {European Conference on Computer Vision},
+ pages = {646-661},
+ title = {Deep Networks with Stochastic Depth},
+ year = {2016}
+}
+
+
+@Article{Elbayad2019DepthAdaptiveT,
+ author = {Maha Elbayad and Jiatao Gu and Edouard Grave and Michael Auli},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Depth-Adaptive Transformer},
+ volume = {abs/1910.10073},
+ year = {2019}
+}
+
+
+@Article{Raposo2024MixtureofDepthsDA,
+ author = {David Raposo and Sam Ritter and Blake A. Richards and T. Lillicrap and Peter C. Humphreys and Adam Santoro},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Mixture-of-Depths: Dynamically allocating compute in transformer-based language models},
+ volume = {abs/2404.02258},
+ year = {2024}
+}
+
+
+@Article{Xin2020DeeBERTDE,
+ author = {Ji Xin and Raphael Tang and Jaejun Lee and Yaoliang Yu and Jimmy J. Lin},
+ booktitle = {Annual Meeting of the Association for Computational Linguistics},
+ pages = {2246-2251},
+ title = {DeeBERT: Dynamic Early Exiting for Accelerating BERT Inference},
+ year = {2020}
+}
+
+
+@Article{Banino2021PonderNetLT,
+ author = {Andrea Banino and Jan Balaguer and C. Blundell},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {PonderNet: Learning to Ponder},
+ volume = {abs/2107.05407},
+ year = {2021}
+}
+
+
+@Article{Campos2017SkipRL,
+ author = {Víctor Campos and Brendan Jou and Xavier Giró-i-Nieto and Jordi Torres and Shih-Fu Chang},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Skip RNN: Learning to Skip State Updates in Recurrent Neural Networks},
+ volume = {abs/1708.06834},
+ year = {2017}
+}
+
+
+@Article{Bengio2013EstimatingOP,
+ author = {Yoshua Bengio and Nicholas Léonard and Aaron C. Courville},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Estimating or Propagating Gradients Through Stochastic Neurons for Conditional Computation},
+ volume = {abs/1308.3432},
+ year = {2013}
+}
+
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,341 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2024_conference,times}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{titletoc}
+
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\graphicspath{{../}} % To reference your generated figures, see below.
+\begin{filecontents}{references.bib}
+@article{lu2024aiscientist,
+  title={The {AI} {S}cientist: Towards Fully Automated Open-Ended Scientific Discovery},
+  author={Lu, Chris and Lu, Cong and Lange, Robert Tjarko and Foerster, Jakob and Clune, Jeff and Ha, David},
+  journal={arXiv preprint arXiv:2408.06292},
+  year={2024}
+}
+
+@book{goodfellow2016deep,
+  title={Deep learning},
+  author={Goodfellow, Ian and Bengio, Yoshua and Courville, Aaron and Bengio, Yoshua},
+  volume={1},
+  year={2016},
+  publisher={MIT Press}
+}
+
+@article{vaswani2017attention,
+  title={Attention is all you need},
+  author={Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  journal={Advances in neural information processing systems},
+  volume={30},
+  year={2017}
+}
+
+@article{karpathy2023nanogpt,
+  title = {nanoGPT},
+  author = {Karpathy, Andrej},
+  year = {2023},
+  journal = {URL https://github.com/karpathy/nanoGPT/tree/master},
+  note = {GitHub repository}
+}
+
+@article{kingma2014adam,
+  title={Adam: A method for stochastic optimization},
+  author={Kingma, Diederik P and Ba, Jimmy},
+  journal={arXiv preprint arXiv:1412.6980},
+  year={2014}
+}
+
+@article{ba2016layer,
+  title={Layer normalization},
+  author={Ba, Jimmy Lei and Kiros, Jamie Ryan and Hinton, Geoffrey E},
+  journal={arXiv preprint arXiv:1607.06450},
+  year={2016}
+}
+
+@article{loshchilov2017adamw,
+  title={Decoupled weight decay regularization},
+  author={Loshchilov, Ilya and Hutter, Frank},
+  journal={arXiv preprint arXiv:1711.05101},
+  year={2017}
+}
+
+@article{radford2019language,
+  title={Language Models are Unsupervised Multitask Learners},
+  author={Radford, Alec and Wu, Jeff and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  year={2019}
+}
+
+@article{bahdanau2014neural,
+  title={Neural machine translation by jointly learning to align and translate},
+  author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:1409.0473},
+  year={2014}
+}
+
+@article{paszke2019pytorch,
+  title={Pytorch: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@misc{gpt4,
+  title={GPT-4 Technical Report}, 
+  author={OpenAI},
+  year={2024},
+  eprint={2303.08774},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2303.08774}, 
+}
+
+@Article{Brown2020LanguageMA,
+ author = {Tom B. Brown and Benjamin Mann and Nick Ryder and Melanie Subbiah and J. Kaplan and Prafulla Dhariwal and Arvind Neelakantan and Pranav Shyam and G. Sastry and Amanda Askell and S. Agarwal and Ariel Herbert-Voss and Gretchen Krueger and T. Henighan and R. Child and A. Ramesh and Daniel M. Ziegler and Jeff Wu and Clemens Winter and Christopher Hesse and Mark Chen and Eric Sigler and Ma-teusz Litwin and Scott Gray and Benjamin Chess and Jack Clark and Christopher Berner and Sam McCandlish and Alec Radford and I. Sutskever and Dario Amodei},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Language Models are Few-Shot Learners},
+ volume = {abs/2005.14165},
+ year = {2020}
+}
+
+
+@Inproceedings{Mahoney2007TheRO,
+ author = {M. Mahoney},
+ title = {The Relationship of Machine Learning and Data Compression to Natural Language Processing : A Review},
+ year = {2007}
+}
+
+
+@Article{Mujika2017FastSlowRN,
+ author = {Asier Mujika and F. Meier and A. Steger},
+ booktitle = {Neural Information Processing Systems},
+ journal = {ArXiv},
+ title = {Fast-Slow Recurrent Neural Networks},
+ volume = {abs/1705.08639},
+ year = {2017}
+}
+
+
+@Inproceedings{None,
+ title = {Compressing Enwik8: An Enumerative Combinatorics Approach},
+ year = {2018}
+}
+
+
+@Article{Graves2013GeneratingSW,
+ author = {Alex Graves},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Generating Sequences With Recurrent Neural Networks},
+ volume = {abs/1308.0850},
+ year = {2013}
+}
+
+
+@Article{Dai2019TransformerXLAL,
+ author = {Zihang Dai and Zhilin Yang and Yiming Yang and J. Carbonell and Quoc V. Le and R. Salakhutdinov},
+ booktitle = {Annual Meeting of the Association for Computational Linguistics},
+ journal = {ArXiv},
+ title = {Transformer-XL: Attentive Language Models beyond a Fixed-Length Context},
+ volume = {abs/1901.02860},
+ year = {2019}
+}
+
+
+@Article{Krause2016MultiplicativeLF,
+ author = {Ben Krause and Liang Lu and Iain Murray and S. Renals},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Multiplicative LSTM for sequence modelling},
+ volume = {abs/1609.07959},
+ year = {2016}
+}
+
+
+@Article{Rae2019CompressiveTF,
+ author = {Jack W. Rae and Anna Potapenko and Siddhant M. Jayakumar and T. Lillicrap},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Compressive Transformers for Long-Range Sequence Modelling},
+ volume = {abs/1911.05507},
+ year = {2019}
+}
+
+
+@Article{Al-Rfou2018CharacterLevelLM,
+ author = {Rami Al-Rfou and Dokook Choe and Noah Constant and Mandy Guo and Llion Jones},
+ booktitle = {AAAI Conference on Artificial Intelligence},
+ pages = {3159-3166},
+ title = {Character-Level Language Modeling with Deeper Self-Attention},
+ year = {2018}
+}
+
+
+@Article{Child2019GeneratingLS,
+ author = {R. Child and Scott Gray and Alec Radford and I. Sutskever},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Generating Long Sequences with Sparse Transformers},
+ volume = {abs/1904.10509},
+ year = {2019}
+}
+
+
+@Article{Kitaev2020ReformerTE,
+ author = {Nikita Kitaev and Lukasz Kaiser and Anselm Levskaya},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Reformer: The Efficient Transformer},
+ volume = {abs/2001.04451},
+ year = {2020}
+}
+
+
+@Article{Gu2023MambaLS,
+ author = {Albert Gu and Tri Dao},
+ booktitle = {arXiv.org},
+ journal = {ArXiv},
+ title = {Mamba: Linear-Time Sequence Modeling with Selective State Spaces},
+ volume = {abs/2312.00752},
+ year = {2023}
+}
+
+
+@Article{Hochreiter1997LongSM,
+ author = {Sepp Hochreiter and J. Schmidhuber},
+ booktitle = {Neural Computation},
+ journal = {Neural Computation},
+ pages = {1735-1780},
+ title = {Long Short-Term Memory},
+ volume = {9},
+ year = {1997}
+}
+
+
+@Article{Gu2021EfficientlyML,
+ author = {Albert Gu and Karan Goel and Christopher R'e},
+ booktitle = {International Conference on Learning Representations},
+ journal = {ArXiv},
+ title = {Efficiently Modeling Long Sequences with Structured State Spaces},
+ volume = {abs/2111.00396},
+ year = {2021}
+}
+
+
+@Article{Katharopoulos2020TransformersAR,
+ author = {Angelos Katharopoulos and Apoorv Vyas and Nikolaos Pappas and Franccois Fleuret},
+ booktitle = {International Conference on Machine Learning},
+ pages = {5156-5165},
+ title = {Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention},
+ year = {2020}
+}
+
+
+@Article{Peng2023RWKVRR,
+ author = {Bo Peng and Eric Alcaide and Quentin Anthony and Alon Albalak and Samuel Arcadinho and Stella Biderman and Huanqi Cao and Xin Cheng and Michael Chung and Matteo Grella and G. Kranthikiran and Xingjian Du and Xuzheng He and Haowen Hou and Przemyslaw Kazienko and Jan Kocoń and Jiaming Kong and Bartlomiej Koptyra and Hayden Lau and Krishna Sri Ipsit Mantri and Ferdinand Mom and Atsushi Saito and Xiangru Tang and Bolun Wang and J. S. Wind and Stansilaw Wozniak and Ruichong Zhang and Zhenyuan Zhang and Qihang Zhao and P. Zhou and Jian Zhu and Rui Zhu},
+ booktitle = {Conference on Empirical Methods in Natural Language Processing},
+ pages = {14048-14077},
+ title = {RWKV: Reinventing RNNs for the Transformer Era},
+ year = {2023}
+}
+
+
+@Article{Poli2023HyenaHT,
+ author = {Michael Poli and Stefano Massaroli and Eric Nguyen and Daniel Y. Fu and Tri Dao and S. Baccus and Y. Bengio and S. Ermon and Christopher Ré},
+ booktitle = {International Conference on Machine Learning},
+ pages = {28043-28078},
+ title = {Hyena Hierarchy: Towards Larger Convolutional Language Models},
+ year = {2023}
+}
+
+\end{filecontents}
+
+\title{TITLE HERE}
+
+\author{LLM\\
+Department of Computer Science\\
+University of LLMs\\
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+ABSTRACT HERE
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+INTRO HERE
+
+\section{Related Work}
+\label{sec:related}
+RELATED WORK HERE
+
+\section{Background}
+\label{sec:background}
+BACKGROUND HERE
+
+\section{Method}
+\label{sec:method}
+METHOD HERE
+
+\section{Experimental Setup}
+\label{sec:experimental}
+EXPERIMENTAL SETUP HERE
+
+\section{Results}
+\label{sec:results}
+RESULTS HERE
+
+% EXAMPLE FIGURE: REPLACE AND ADD YOUR OWN FIGURES / CAPTIONS
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{val_loss_enwik8.png}
+        \label{fig:first-run}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\textwidth}
+        \includegraphics[width=\textwidth]{train_loss_enwik8.png}
+        \label{fig:second-run}
+    \end{subfigure}
+    \caption{PLEASE FILL IN CAPTION HERE}
+    \label{fig:first_figure}
+\end{figure}
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+CONCLUSIONS HERE
+
+This work was generated by \textsc{The AI Scientist} \citep{lu2024aiscientist}.
+
+\bibliographystyle{iclr2024_conference}
+\bibliography{references}
+
+\end{document}
