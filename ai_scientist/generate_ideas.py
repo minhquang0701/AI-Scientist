@@ -10,6 +10,10 @@ import requests
 from ai_scientist.llm import get_response_from_llm, extract_json_between_markers, create_client, AVAILABLE_LLMS
 
 S2_API_KEY = os.getenv("S2_API_KEY")
+SEARCH_BACKOFF_MAX_TRIES = int(os.getenv("AI_SCIENTIST_SEARCH_BACKOFF_MAX_TRIES", "6"))
+SEARCH_BACKOFF_MAX_TIME = int(os.getenv("AI_SCIENTIST_SEARCH_BACKOFF_MAX_TIME", "180"))
+S2_MIN_INTERVAL = float(os.getenv("AI_SCIENTIST_S2_MIN_INTERVAL", "2.0"))
+_last_s2_request_time = 0.0
 
 idea_first_prompt = """{task_description}
 <experiment.py>
@@ -279,22 +283,54 @@ def on_backoff(details):
     )
 
 
+def wait_for_s2_rate_limit():
+    """Keep requests comfortably below the introductory S2 API-key limit.
+
+    Semantic Scholar's starter key is rate limited, and the novelty loop can
+    make thousands of calls. Sleeping only after successful requests is not
+    enough because 429/5xx retries otherwise re-fire immediately.
+    """
+
+    global _last_s2_request_time
+    if S2_MIN_INTERVAL <= 0:
+        return
+    now = time.monotonic()
+    wait = S2_MIN_INTERVAL - (now - _last_s2_request_time)
+    if wait > 0:
+        time.sleep(wait)
+    _last_s2_request_time = time.monotonic()
+
+
 @backoff.on_exception(
-    backoff.expo, requests.exceptions.HTTPError, on_backoff=on_backoff
+    backoff.expo,
+    requests.exceptions.HTTPError,
+    on_backoff=on_backoff,
+    max_tries=SEARCH_BACKOFF_MAX_TRIES,
+    max_time=SEARCH_BACKOFF_MAX_TIME,
 )
 def search_for_papers(query, result_limit=10, engine="semanticscholar") -> Union[None, List[Dict]]:
     if not query:
         return None
     if engine == "semanticscholar":
+        wait_for_s2_rate_limit()
         rsp = requests.get(
             "https://api.semanticscholar.org/graph/v1/paper/search",
-            headers={"X-API-KEY": S2_API_KEY} if S2_API_KEY else {},
+            headers={"x-api-key": S2_API_KEY} if S2_API_KEY else {},
             params={
                 "query": query,
                 "limit": result_limit,
                 "fields": "title,authors,venue,year,abstract,citationStyles,citationCount",
             },
         )
+        if rsp.status_code == 429:
+            retry_after = rsp.headers.get("Retry-After")
+            if retry_after:
+                try:
+                    wait = float(retry_after) + 0.5
+                    print(f"Semantic Scholar requested Retry-After={retry_after}; sleeping {wait:.1f}s.")
+                    time.sleep(wait)
+                except ValueError:
+                    pass
         print(f"Response Status Code: {rsp.status_code}")
         print(
             f"Response Content: {rsp.text[:500]}"
@@ -302,7 +338,6 @@ def search_for_papers(query, result_limit=10, engine="semanticscholar") -> Union
         rsp.raise_for_status()
         results = rsp.json()
         total = results["total"]
-        time.sleep(1.0)
         if not total:
             return None
 
@@ -402,6 +437,24 @@ A query will work best if you are able to recall the exact name of the paper you
 This JSON will be automatically parsed, so ensure the format is precise.'''
 
 
+novelty_final_decision_prompt = '''You have this idea:
+
+"""
+{idea}
+"""
+
+The final available Semantic Scholar query results are:
+"""
+{last_query_results}
+"""
+
+Make the final novelty decision now. Do not request another query.
+
+In your response, briefly explain whether these results significantly overlap with the idea.
+If the idea still looks sufficiently different, include exactly "Decision made: novel."
+If the idea significantly overlaps with prior work, include exactly "Decision made: not novel."'''
+
+
 def check_idea_novelty(
         ideas,
         base_dir,
@@ -460,8 +513,31 @@ def check_idea_novelty(
                 ## SEARCH FOR PAPERS
                 query = json_output["Query"]
                 papers = search_for_papers(query, result_limit=10, engine=engine)
-                if papers is None:
+                if not papers:
                     papers_str = "No papers found."
+                    if j == max_num_iterations - 1:
+                        text, msg_history = get_response_from_llm(
+                            novelty_final_decision_prompt.format(
+                                idea=idea,
+                                last_query_results=papers_str,
+                            ),
+                            client=client,
+                            model=model,
+                            system_message=novelty_system_msg.format(
+                                num_rounds=max_num_iterations,
+                                task_description=task_description,
+                                code=code,
+                            ),
+                            msg_history=msg_history,
+                        )
+                        if "decision made: novel" in text.lower():
+                            print("Decision made: novel after final evidence pass")
+                            novel = True
+                        elif "decision made: not novel" in text.lower():
+                            print("Decision made: not novel after final evidence pass")
+                        else:
+                            print("No final novelty decision found; treating idea as not novel.")
+                    continue
 
                 paper_strings = []
                 for i, paper in enumerate(papers):
@@ -477,6 +553,29 @@ def check_idea_novelty(
                         )
                     )
                 papers_str = "\n\n".join(paper_strings)
+
+                if j == max_num_iterations - 1:
+                    text, msg_history = get_response_from_llm(
+                        novelty_final_decision_prompt.format(
+                            idea=idea,
+                            last_query_results=papers_str,
+                        ),
+                        client=client,
+                        model=model,
+                        system_message=novelty_system_msg.format(
+                            num_rounds=max_num_iterations,
+                            task_description=task_description,
+                            code=code,
+                        ),
+                        msg_history=msg_history,
+                    )
+                    if "decision made: novel" in text.lower():
+                        print("Decision made: novel after final evidence pass")
+                        novel = True
+                    elif "decision made: not novel" in text.lower():
+                        print("Decision made: not novel after final evidence pass")
+                    else:
+                        print("No final novelty decision found; treating idea as not novel.")
 
             except Exception as e:
                 print(f"Error: {e}")

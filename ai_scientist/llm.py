@@ -7,10 +7,13 @@ import backoff
 import openai
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
+from ai_scientist.codex_headless import CodexHeadlessClient, is_codex_headless_model
 
 MAX_NUM_TOKENS = 4096
 
 AVAILABLE_LLMS = [
+    # Codex CLI
+    "codex-headless",
     # Anthropic models
     "claude-3-5-sonnet-20240620",
     "claude-3-5-sonnet-20241022",
@@ -77,7 +80,22 @@ def get_batch_responses_from_llm(
     if msg_history is None:
         msg_history = []
 
-    if 'gpt' in model:
+    if is_codex_headless_model(model):
+        content = []
+        new_msg_history = []
+        for _ in range(n_responses):
+            response_text = client.complete(
+                system_message=system_message,
+                msg_history=msg_history,
+                user_message=msg,
+            )
+            content.append(response_text)
+            new_msg_history.append(
+                msg_history
+                + [{"role": "user", "content": msg}]
+                + [{"role": "assistant", "content": response_text}]
+            )
+    elif 'gpt' in model:
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model=model,
@@ -152,7 +170,17 @@ def get_response_from_llm(
     if msg_history is None:
         msg_history = []
 
-    if "claude" in model:
+    if is_codex_headless_model(model):
+        content = client.complete(
+            system_message=system_message,
+            msg_history=msg_history,
+            user_message=msg,
+        )
+        new_msg_history = msg_history + [
+            {"role": "user", "content": msg},
+            {"role": "assistant", "content": content},
+        ]
+    elif "claude" in model:
         new_msg_history = msg_history + [
             {
                 "role": "user",
@@ -315,6 +343,9 @@ def extract_json_between_markers(llm_output):
 
 
 def create_client(model):
+    if is_codex_headless_model(model):
+        print(f"Using Codex headless with model alias {model}.")
+        return CodexHeadlessClient(model), model
     if model.startswith("claude-"):
         print(f"Using Anthropic API with model {model}.")
         return anthropic.Anthropic(), model

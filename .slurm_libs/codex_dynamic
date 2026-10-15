@@ -1,0 +1,39 @@
+#!/bin/bash
+set -euo pipefail
+
+best=""
+
+consider_codex() {
+    local candidate="$1"
+    if [ -x "$candidate" ]; then
+        if [ -z "$best" ] || [ "$candidate" -nt "$best" ]; then
+            best="$candidate"
+        fi
+    fi
+}
+
+if [ -n "${CODEX_REAL_BIN:-}" ]; then
+    consider_codex "$CODEX_REAL_BIN"
+fi
+
+found="$(command -v codex 2>/dev/null || true)"
+if [ -n "$found" ] && [ "$found" != "$0" ]; then
+    consider_codex "$found"
+fi
+
+shopt -s nullglob
+for candidate in \
+    "$HOME/.local/bin/codex" \
+    "$HOME/bin/codex" \
+    "$HOME/.cursor-server/extensions"/openai.chatgpt-*/bin/linux-x86_64/codex
+do
+    consider_codex "$candidate"
+done
+shopt -u nullglob
+
+if [ -z "$best" ]; then
+    echo "ERROR: No codex executable found. Set CODEX_BIN or install/open the Codex extension." >&2
+    exit 127
+fi
+
+exec "$best" "$@"

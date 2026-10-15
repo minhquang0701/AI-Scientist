@@ -6,7 +6,7 @@
         "Interestingness": 6,
         "Feasibility": 4,
         "Novelty": 4,
-        "novel": true
+        "novel": false
     },
     {
         "Name": "layerwise_learning_rates",
@@ -15,456 +15,276 @@
         "Interestingness": 4,
         "Feasibility": 6,
         "Novelty": 2,
-        "novel": true
+        "novel": false
     },
     {
-        "Name": "attention_diversity_regularization",
-        "Title": "Attention Diversity Regularization: Encouraging Diverse Context Window Utilization in Transformers",
-        "Experiment": "Modify the loss function to include a regularization term that encourages diversity in the attention weights, using a measure such as entropy or the ratio of the attention weights to their maximum value. Introduce a hyperparameter to control the strength of the regularization term. Compare the model's performance on tasks that require long-range dependency modeling with and without the regularization term.",
+        "Name": "multi_horizon_auxiliary_loss",
+        "Title": "Multi-Horizon Auxiliary Losses for Autoregressive Transformer Training",
+        "Experiment": "Add auxiliary future-token prediction heads to GPT for offsets [2, 4, 8]. Modify GPT.forward to compute the ordinary next-token logits and loss as before, and when auxiliary training is enabled compute additional cross-entropy losses from the same hidden states to targets shifted by each future offset, masking positions that would fall outside the block. Train with total_loss = next_token_loss + 0.25 * loss_offset_2 + 0.125 * loss_offset_4 + 0.0625 * loss_offset_8. Modify estimate_loss and logging so the primary reported metric remains the ordinary next-token train and validation loss, with auxiliary losses logged separately. Keep generation unchanged by using only the original lm_head. Compare against baseline on best standard validation loss, convergence speed, final train loss, and inference tokens per second, and optionally run one ablation with half auxiliary weights to test sensitivity.",
         "Interestingness": 7,
-        "Feasibility": 6,
+        "Feasibility": 8,
         "Novelty": 5,
-        "novel": true
+        "novel": false
     },
     {
-        "Name": "ntm_augmented_transformer",
-        "Title": "Neural Turing Machine-Augmented Transformer: Improving Text Generation with External Memory",
-        "Experiment": "Implement a fixed-size external memory module that stores and retrieves information through attention mechanisms, and apply the model to the task of text generation. Evaluate the effectiveness of the model and compare it to other approaches.",
+        "Name": "neural_cache_mixture",
+        "Title": "Causal Neural Cache Mixtures for Efficient In-Context Language Modeling",
+        "Experiment": "Add an optional causal neural cache to GPT that mixes the standard transformer next-token probability with a retrieval distribution over previous hidden states in the same context. Extend GPTConfig with use_neural_cache, cache_window, cache_temperature, and cache_mix. In GPT.forward, after computing final hidden states and base logits, L2-normalize hidden states and compute causal cosine similarities from each position to earlier positions within cache_window. Apply a masked softmax over previous positions. During training, avoid constructing a full vocabulary cache distribution: for each position t, sum cache weights over previous positions j < t whose following token targets[j] equals targets[t], yielding p_cache_target. Compute the mixed loss as -log((1 - cache_mix) * p_base_target + cache_mix * p_cache_target + eps). Also record ordinary base cross-entropy for diagnosis. In generate, build the cache distribution only for the final position by scatter-adding weights onto the observed following tokens idx[:, j + 1] from previous positions, mix it with the base softmax probabilities, and sample from the mixed distribution. Compare against the baseline on best validation loss, base-only validation loss, convergence speed, sample quality, and inference tokens per second. Run small ablations over cache_mix values such as 0.05, 0.1, and 0.2, plus a shuffled-following-token cache control to verify that gains come from meaningful in-context retrieval.",
+        "Interestingness": 8,
+        "Feasibility": 7,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "causal_prefix_dropout",
+        "Title": "Causal Prefix Dropout Consistency for Robust Autoregressive Training",
+        "Experiment": "Add a train-time consistency regularizer that makes next-token predictions stable under mild causal input corruption. Extend GPTConfig with use_prefix_dropout, prefix_dropout_p, and consistency_weight. Add a learned mask embedding to GPT, and modify GPT.forward to optionally replace randomly selected token embeddings with this mask embedding before adding positional embeddings. In the training loop, compute the ordinary clean cross-entropy loss as usual. When enabled, run a second forward pass on the same batch with prefix dropout, then add a one-way KL loss from detached clean logits to corrupted logits scaled by consistency_weight. Do not change generation or the model architecture used at inference. Try small dropout probabilities such as 0.05 and 0.10 with consistency weights such as 0.05 and 0.10. Report standard clean train/validation loss as the main metric, plus corrupted-context validation KL or loss as a robustness diagnostic. Compare against baseline on best validation loss, convergence speed, final train loss, sample quality, and inference tokens per second.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "elastic_depth_exits",
+        "Title": "Elastic Depth Exits for Compute-Adaptive Autoregressive Language Modeling",
+        "Experiment": "Extend GPTConfig with use_elastic_depth, exit_layers such as [2, 4], exit_loss_weight, and adaptive_exit_confidence. In GPT.__init__, add one LayerNorm per selected exit layer and reuse the existing tied lm_head for all exit logits. Modify GPT.forward to collect hidden states after selected transformer blocks, compute the standard final next-token cross-entropy, and when elastic depth is enabled add exit_loss_weight times the average intermediate next-token loss. Keep full-depth validation loss as the primary metric, and additionally log fixed-exit validation losses for each exit layer. Modify generation so it can stop computation at a requested exit layer, allowing true fixed-depth throughput measurements. Optionally add a simple adaptive mode that checks exits in order and stops when the max next-token probability exceeds adaptive_exit_confidence. Compare against the baseline on best full-depth validation loss, fixed-exit validation loss, convergence speed, average layers used, generated samples, and inference tokens per second.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "learning_progress_sampling",
+        "Title": "Learning-Progress Sampling for Compute-Efficient Autoregressive Training",
+        "Experiment": "Modify the training data loader to divide train.bin into fixed-size chunks, such as one or two block_size lengths, and maintain a priority table for train chunks. Add settings such as use_learning_progress_sampling, priority_warmup_iters, priority_mix, priority_ema, priority_temperature, and priority_floor. During warmup, sample training sequences uniformly. After warmup, choose each training sequence from a mixture of uniform chunk sampling and priority-weighted chunk sampling, then choose a valid offset within that chunk; validation sampling remains unchanged and uniform. Modify GPT.forward or the training loop to compute per-example next-token cross-entropy losses by using reduction='none' over token losses and averaging over positions. Use the ordinary mean loss for backpropagation. After each training step, update each sampled chunk's priority from the detached per-example loss: priority is an EMA-smoothed positive loss decrease relative to that chunk's previous observed loss, with a small floor to avoid starvation. Compare against the baseline using the same seeds and max_iters, reporting best validation loss, validation loss versus iteration, final train loss, total train time, and inference tokens per second. Include one raw-loss prioritization ablation to test whether learning-progress sampling is better than simply oversampling hard examples.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "multi_timescale_ema_memory",
+        "Title": "Multi-Timescale Causal EMA Memory for Transformer Language Models",
+        "Experiment": "Extend GPTConfig with use_ema_memory, ema_layers, ema_learned_decay, ema_gate_init, and ema_min_half_life/ema_max_half_life. Add a CausalEMAMemory module that projects hidden states to n_embd values, applies causal exponential moving averages over sequence positions with per-channel log-spaced half-lives, and projects the resulting memory back to n_embd. Implement the EMA efficiently with a compiled causal scan or grouped causal 1D convolution over the fixed block size. Modify Block to optionally insert LayerNorm plus this EMA branch as a gated residual path after attention and before the MLP, initializing the gate near zero for stable baseline-like startup. Keep the ordinary next-token loss, validation metric, and generation procedure unchanged. Compare baseline and EMA models across the same seeds on best validation loss, final train loss, convergence speed, total train time, generated samples, and inference tokens per second. Include two focused ablations: fixed versus learned EMA decays, and EMA in all layers versus only the upper half of layers.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "future_span_contrastive",
+        "Title": "Future-Span Contrastive Predictive Training for Autoregressive Transformers",
+        "Experiment": "Add a lightweight training-only contrastive auxiliary objective that encourages each hidden state to encode its upcoming continuation. Extend GPTConfig with use_future_span_contrastive, contrastive_span, contrastive_weight, contrastive_temperature, contrastive_dim, contrastive_num_samples, and contrastive_shuffle_control. In GPT.__init__, add small query and key projection layers. Modify GPT.forward so that when targets are provided and the auxiliary objective is enabled, it computes the usual next-token cross-entropy plus a sampled InfoNCE loss. For valid positions t where targets[:, t:t + contrastive_span] exists, form the positive future key by averaging the detached token embeddings of that target span, project h_t with the query head and the averaged future embedding with the key head, L2-normalize both, and contrast each sampled query against the sampled future keys from other batch/time positions. Train with total_loss = next_token_loss + contrastive_weight * contrastive_loss, but keep ordinary next-token train and validation loss as the primary metric. Log contrastive loss and top-1 future-span retrieval accuracy as diagnostics. Keep generation unchanged. Compare against the baseline on best validation loss, convergence speed, final train loss, generated samples, and inference tokens per second. Run focused ablations with contrastive_span values 8 and 16, contrastive_weight values 0.03 and 0.1, and a shuffled future-span control.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "block_recurrent_memory",
+        "Title": "Block-Recurrent Memory Prefixes for Fixed-Context Language Models",
+        "Experiment": "Extend GPTConfig with use_recurrent_memory, num_memory_tokens, memory_detach, memory_loss_weight, and memory_dropout. Add learned initial memory tokens, learned memory positional embeddings, and a small MemoryWriter module to GPT. Modify GPT.forward to optionally accept a memory tensor of shape batch_size x num_memory_tokens x n_embd. When enabled, prepend memory embeddings to the ordinary token embeddings, add separate memory positional embeddings to memory tokens while keeping ordinary token positions unchanged, run the standard causal transformer over the combined sequence, and compute logits and cross-entropy loss only on ordinary token positions. The MemoryWriter converts final hidden states from ordinary token positions into the next memory, for example by chunk-wise average pooling followed by a linear projection and LayerNorm. Modify get_batch to optionally sample two consecutive blocks. During training, run block 1 with learned initial memory, write next_memory from block 1, optionally detach it, then run block 2 with that memory; optimize memory_loss_weight * loss_block1 + loss_block2. Keep ordinary single-block validation loss as the primary metric and add recurrent two-block validation loss as the main diagnostic. Compare against the baseline on best validation loss, recurrent validation loss, final train loss, total train time, generated samples, and inference tokens per second. Include ablations for num_memory_tokens values such as 4 and 8, detached versus non-detached memory, zero-memory validation, and shuffled-memory validation between batch examples.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "leave_one_out_ngram_teacher",
+        "Title": "Leave-One-Out Backoff N-Gram Teachers for Neural Language Model Training",
+        "Experiment": "Precompute train-only n-gram continuation count tables from train.bin for context orders such as 2, 4, and 8. Add settings such as use_ngram_teacher, ngram_orders, teacher_alpha, min_context_count, and dirichlet_smoothing. Modify get_batch to also return sampled start indices. During training, for each token position, choose the longest context with enough support, subtract the current observed occurrence from that context's counts as a leave-one-out correction, back off to shorter contexts if support becomes too small, and form a smoothed empirical next-token distribution. Train with total_loss = (1 - teacher_alpha) * hard_cross_entropy + teacher_alpha * ngram_teacher_cross_entropy. Keep ordinary hard train and validation cross-entropy as the primary metrics, with extra logs for teacher loss, average chosen n-gram order, and teacher coverage. Keep the model architecture and generation unchanged, so inference speed is unaffected. Compare against the baseline on best validation loss, validation loss versus iteration, final train loss, generated samples, total train time, and inference tokens per second. Include small ablations over teacher_alpha values such as 0.05, 0.1, and 0.2, maximum n-gram order, and a shuffled-context teacher control.",
+        "Interestingness": 7,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "causal_context_consistency",
+        "Title": "Causal Context Consistency for Length-Robust Autoregressive Language Modeling",
+        "Experiment": "Add settings use_context_consistency, min_context_crop, consistency_overlap, consistency_weight, and consistency_temperature. Keep get_batch unchanged. In the training loop, compute the ordinary next-token cross-entropy on the full block_size batch as the primary loss. When enabled, sample a crop length between min_context_crop and block_size, form X_short = X[:, -crop_len:] and Y_short = Y[:, -crop_len:], and run a second forward pass on this valid shorter-context view. Align the final min(consistency_overlap, crop_len) positions of the full-context logits and short-context logits, since they predict the same target tokens with different amounts of left context. Add a one-way temperature-scaled KL loss from detached full-context probabilities to short-context logits, scaled by consistency_weight. Keep generation and inference architecture unchanged. Report ordinary full-context validation loss as the primary metric, and add diagnostic validation losses using fixed context crops such as 64, 128, and 256 tokens. Compare against the baseline on best validation loss, convergence speed, final train loss, generated samples, and inference tokens per second. Include ablations over consistency_weight values such as 0.02, 0.05, and 0.1, plus a random-alignment control where short-view logits are matched to incorrect suffix positions.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "recurrent_depth_sharing",
+        "Title": "Depth-Recurrent Weight Sharing for Parameter-Efficient Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_recurrent_depth_sharing, num_shared_blocks, use_depth_embeddings, and eval_recurrent_steps. Modify GPT.__init__ so that when recurrent sharing is enabled, the model creates a small ModuleList of shared Block modules, such as one shared block or two alternating shared blocks, instead of n_layer independent blocks. Add learned depth embeddings of shape n_layer x n_embd, initialized like other embeddings, and add the embedding for the current recurrent step to the residual stream before each block application when use_depth_embeddings is enabled. Modify GPT.forward to apply n_layer recurrent block steps during training, selecting the shared block by step index modulo num_shared_blocks. Keep the ordinary next-token loss, validation metric, optimizer, and generation procedure unchanged, except optionally using eval_recurrent_steps at validation or sampling time to test shorter or longer iterative computation. Compare against the original full-depth baseline and a shallow independent-layer baseline with a similar parameter count. Report best validation loss, final train loss, total train time, inference tokens per second, parameter count, and validation loss per million parameters. Include ablations for one shared block versus two alternating shared blocks, with and without depth embeddings, and evaluation depths smaller or larger than the training depth.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "positional_origin_consistency",
+        "Title": "Positional Origin Consistency for Robust Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_position_origin_consistency, max_position_shift, position_consistency_weight, and position_consistency_temperature. Increase the learned position embedding table size to block_size + max_position_shift. Modify GPT.forward to accept an optional tensor position_offsets of shape batch_size, defaulting to zeros, and construct position indices as arange(T) plus each example's offset before looking up position embeddings. In the training loop, compute the ordinary next-token cross-entropy with zero offsets. When enabled, sample random per-example offsets from 1 to max_position_shift, run a second forward pass on the same X,Y with shifted offsets, and add a temperature-scaled one-way KL consistency loss from detached zero-offset logits to shifted-offset logits. Keep generation unchanged by using zero offsets. Modify estimate_loss to report standard zero-offset train and validation loss as the primary metric, plus diagnostic validation loss and KL at fixed offsets such as 16, 64, and 128. Compare against the baseline on best standard validation loss, shifted-origin robustness, final train loss, total train time, generated samples, and inference tokens per second. Include ablations over consistency weights such as 0.02, 0.05, and 0.1, plus a random-offset cross-entropy augmentation baseline to test whether consistency is better than simply training on shifted positions.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "residual_correlation_regularization",
+        "Title": "Residual Stream Correlation Regularization for Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_residual_correlation, correlation_weight, correlation_num_samples, correlation_layers, and correlation_eps. Modify GPT.forward so that, when enabled during training, it collects the final residual stream after ln_f, with an optional setting to also collect selected intermediate residual streams. Randomly subsample up to correlation_num_samples batch-time hidden vectors, center and standardize each feature, compute the feature correlation matrix, and add a loss equal to the mean squared off-diagonal correlation. Train with total_loss = next_token_cross_entropy + correlation_weight * correlation_loss, while keeping ordinary next-token train and validation cross-entropy as the primary metric. Keep generation unchanged, so inference architecture and sampling speed are unaffected except for normal training-time overhead. Log correlation loss, mean absolute off-diagonal correlation, and feature variance diagnostics. Compare against the baseline on best validation loss, final train loss, convergence speed, total train time, generated samples, and inference tokens per second. Include focused ablations over correlation_weight values such as 0.001, 0.003, and 0.01, plus final-layer-only versus all-layer regularization.",
+        "Interestingness": 7,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "gated_log_distance_bias",
+        "Title": "Gated Log-Distance Attention Biases for Multi-Scale Causal Context Use",
+        "Experiment": "Extend GPTConfig with use_relative_attention_bias, num_distance_buckets, max_distance, relative_bias_init, and relative_bias_gate_init. Modify CausalSelfAttention so that, when enabled, attention scores receive a learned per-head bias based on causal query-key distance before the softmax. Bucket distances with logarithmic bins so nearby tokens have fine resolution and distant tokens share coarser bins. Add a learned per-head gate initialized near zero, so training starts close to the baseline and each head can learn how strongly to use the distance prior. Use either zero-initialized biases or a structured initialization where different heads mildly prefer different distance ranges. If relative bias is enabled, use the manual attention path rather than flash attention for correctness. Keep the standard next-token loss, optimizer, validation metric, and generation API unchanged. Compare against the baseline on best validation loss, convergence speed, final train loss, total train time, generated samples, and inference tokens per second. Include ablations for zero-initialized versus structured distance biases, gated versus ungated biases, and disabling absolute position embeddings to test whether relative distance structure complements or replaces learned absolute positions.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "temporal_self_distillation",
+        "Title": "Temporal Self-Distillation with EMA Teachers for Autoregressive Language Modeling",
+        "Experiment": "Add settings use_ema_teacher, ema_decay, ema_start_iter, ema_distill_weight, and ema_temperature. After model initialization, create a frozen EMA copy of the GPT model initialized from the student weights. During training, always compute the ordinary next-token cross-entropy as the primary loss. After ema_start_iter, run the EMA teacher on the same batch under torch.no_grad(), compute a temperature-scaled KL divergence from the teacher logits to the student logits, and optimize total_loss = cross_entropy + ema_distill_weight * ema_temperature^2 * kl_loss. After each optimizer step, update the EMA parameters from the current student parameters. Keep validation reporting centered on ordinary student next-token loss, but also report EMA-model validation loss at evaluation intervals. Generation remains unchanged, with an optional final comparison between sampling from the student weights and the EMA weights. Compare against the baseline on best validation loss, final train loss, total train time, generated samples, and inference tokens per second. Run focused ablations over ema_decay values such as 0.99 and 0.999, ema_distill_weight values such as 0.05 and 0.1, and an EMA-evaluation-only variant with no KL loss.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "confidence_adaptive_smoothing",
+        "Title": "Confidence-Adaptive Prior Smoothing for Calibrated Autoregressive Language Models",
+        "Experiment": "Add settings use_confidence_adaptive_smoothing, smoothing_start_iter, smoothing_max, smoothing_gamma, prior_temperature, and prior_uniform_mix. Before training, estimate a token unigram distribution from train.bin, temper it with prior_temperature, and mix in a small uniform component for numerical stability. Modify GPT.forward to optionally return per-token logits and hard cross-entropy. In the training loop, after smoothing_start_iter, compute detached true-token probabilities p_true from the logits and set epsilon = smoothing_max * (1 - p_true)^smoothing_gamma for each token position. Replace the ordinary training loss with the exact mixed-target cross-entropy: (1 - epsilon) times hard one-hot cross-entropy plus epsilon times cross-entropy to the smoothed unigram prior. Keep ordinary hard next-token train and validation cross-entropy as the primary reported metric. Log mean epsilon, prediction entropy, mean true-token confidence, expected calibration error, and sample repetition statistics. Generation and inference architecture remain unchanged. Compare against the baseline on best hard validation loss, final train loss, calibration error, generated samples, and inference tokens per second. Include ablations against fixed label smoothing with the same average epsilon, uniform-prior smoothing, and smoothing_max values such as 0.05, 0.1, and 0.2.",
+        "Interestingness": 7,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "attention_distance_diversity",
+        "Title": "Attention Distance Diversity Regularization for Efficient Multi-Head Context Use",
+        "Experiment": "Extend GPTConfig with use_attention_distance_diversity, attention_diversity_weight, attention_diversity_start_iter, attention_diversity_layers, num_distance_buckets, attention_entropy_weight, and attention_eps. Modify Block initialization to know its layer index, and modify CausalSelfAttention so that selected layers use the manual attention path during training when the regularizer is active. After computing causal attention probabilities, summarize each head by its average attention mass over logarithmic query-key distance buckets. Add a diversity loss that penalizes high pairwise cosine similarity between head distance profiles within the same layer. Optionally add a small entropy penalty only as an ablation to avoid degenerate extremely sharp or uniform profiles. Modify GPT.forward to return the ordinary next-token loss plus auxiliary attention diagnostics when enabled, and modify the training loop to apply the auxiliary loss only after attention_diversity_start_iter. Keep ordinary next-token train and validation cross-entropy as the primary metrics, and log diversity loss, mean pairwise head-profile similarity, attention entropy, and average attended distance by layer. Generation remains unchanged and uses the normal model path without diagnostics. Compare against the baseline on best validation loss, final train loss, convergence speed, total train time, generated samples, and inference tokens per second. Run focused ablations over diversity weights such as 0.001, 0.003, and 0.01, last-two-layers versus all-layers regularization, and entropy regularization on versus off.",
+        "Interestingness": 7,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "zero_init_causal_conv_adapter",
+        "Title": "Zero-Initialized Causal Convolution Adapters for Local Bias in Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_causal_conv_adapter, conv_kernel_size, conv_adapter_layers, conv_gate_init, and conv_dropout. Add a CausalConvAdapter module that applies LayerNorm, left-padded depthwise causal Conv1d over the sequence dimension, GELU, a pointwise Linear projection back to n_embd, dropout, and a learned scalar or per-channel residual gate initialized near zero. Modify Block to optionally add this adapter as x = x + gated_adapter(x) after self-attention and before the MLP for selected layers. Keep the ordinary next-token cross-entropy, validation loss, optimizer, generation code, and sampling settings unchanged. Compare against the baseline on best validation loss, final train loss, convergence speed, total train time, generated samples, and inference tokens per second. Log learned gate magnitudes by layer to verify whether the model uses the local mixing branch. Run ablations over conv_kernel_size values such as 3, 7, and 15, all layers versus lower-half-only adapters, and a parameter-matched 1x1 adapter control with no temporal convolution to test whether improvements come from causal local mixing rather than added capacity.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 5,
+        "novel": false
+    },
+    {
+        "Name": "lowrank_hashed_ngram_embeddings",
+        "Title": "Low-Rank Hashed N-Gram Embeddings for Tokenizer-Free Autoregressive Models",
+        "Experiment": "Extend GPTConfig with use_hashed_ngram_embeddings, ngram_orders such as [2, 3, 4], ngram_hash_size, ngram_embd_dim such as 32 or 64, ngram_dropout, and ngram_gate_init. In GPT.__init__, add one low-dimensional embedding table per n-gram order with reserved id 0 for invalid prefixes, a shared projection from the concatenated n-gram features to n_embd, dropout, and a learned scalar gate initialized near zero. In GPT.forward, compute causal suffix n-gram hash ids ending at each input position from idx, set positions without enough left context to id 0, look up and concatenate the n-gram embeddings, project them to n_embd, and add the gated projected branch to the ordinary token embedding before positional embeddings. Keep the ordinary next-token cross-entropy, validation loss, optimizer, and generation API unchanged. Compare against the baseline on best validation loss, final train loss, convergence speed, total train time, generated samples, parameter count, and inference tokens per second. Include ablations over ngram_orders, ngram_embd_dim, hash sizes such as 1024, 4096, and 16384, n-gram dropout, and a parameter-matched shuffled-hash control to test whether gains come from meaningful causal substring identity rather than added capacity.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "chunk_summary_attention",
+        "Title": "Chunk Summary Attention for Compressed Long-Range Context",
+        "Experiment": "Extend GPTConfig with use_chunk_summary_attention, summary_stride, summary_tokens_per_chunk, and local_attention_window. In GPT.__init__, add learned summary token embeddings and expand the position embedding capacity to cover the augmented sequence length. In GPT.forward, when enabled, augment each input by inserting summary token slots after every summary_stride real tokens, keeping an index map from augmented positions to original real-token positions. Compute logits and ordinary next-token cross-entropy only at real-token positions, with summary-token positions ignored. Modify CausalSelfAttention to accept an optional boolean attention mask and force the manual attention path when chunk summary attention is active. The mask should allow each summary token to attend causally to tokens in its own completed chunk plus previous summary tokens, while each real token attends to recent real tokens within local_attention_window and to summary tokens from earlier chunks, but not to distant raw tokens. Keep generation by rebuilding the augmented context at each step and sampling from the logits at the final real token. Compare against the baseline full-attention model on best validation loss, final train loss, convergence speed, total train time, generated samples, and inference tokens per second. Include controls for local-window attention without summaries, full attention with summary tokens, and dummy summary tokens hidden from later real tokens to separate compression benefits from added parameters.",
         "Interestingness": 8,
         "Feasibility": 7,
         "Novelty": 6,
         "novel": false
     },
     {
-        "Name": "uncertainty_based_filtering",
-        "Title": "Uncertainty-Based Filtering: Reducing Hallucinations in Text Generation by Selecting High-Certainty Predictions",
-        "Experiment": "Modify the forward function of the GPT class to output a probability distribution over the possible next tokens. Compute a measure of uncertainty (e.g. entropy or variance) from this distribution, and use it to filter out predictions where the model is highly uncertain. Evaluate the effect of this filtering on the frequency of hallucinations in the generated text.",
+        "Name": "causal_belief_distillation",
+        "Title": "Causal Belief Feedback Distillation for Autoregressive Language Models",
+        "Experiment": "Extend GPTConfig with use_belief_feedback, belief_feedback_weight, belief_distill_weight, belief_feedback_temperature, and belief_feedback_dropout. Add a learned scalar feedback gate initialized at zero, and modify GPT.forward to accept an optional belief_feedback tensor of shape batch_size x sequence_length x n_embd that is added to token embeddings before positional embeddings. In the training loop, first run the ordinary forward pass and compute standard next-token cross-entropy. Under no_grad, convert detached ordinary logits into soft token embeddings using softmax(logits / belief_feedback_temperature) multiplied by the detached tied token embedding matrix. Shift these embeddings one position to the right and zero-pad the first position so the feedback is strictly causal. Run a second forward pass with this feedback and compute feedback-conditioned cross-entropy. Optimize total_loss = ordinary_loss + belief_feedback_weight * feedback_loss + belief_distill_weight * KL(detached feedback logits || ordinary logits), using temperature-scaled KL for the distillation term. Keep ordinary no-feedback train and validation loss as the primary metric, and log feedback-conditioned validation loss, distillation KL, feedback gate value, prediction entropy, total train time, and inference tokens per second. Generation remains unchanged by default, so deployment cost is identical to the baseline. Compare against the baseline on best ordinary validation loss, convergence speed, final train loss, generated samples, and inference speed. Include ablations with belief_feedback_weight values such as 0.25 and 0.5, belief_distill_weight values such as 0.02 and 0.05, and a shuffled-feedback control where feedback embeddings are permuted across batch examples.",
         "Interestingness": 8,
         "Feasibility": 8,
         "Novelty": 6,
-        "novel": true
+        "novel": false
     },
     {
-        "Name": "targeted_knowledge_distillation",
-        "Title": "Targeted Knowledge Distillation for Transformer-Based Language Models: A Study on Distilling Specific Aspects of Model Behavior",
-        "Experiment": "Modify the GPT model to create a smaller student model with fewer layers and/or smaller embedding dimensions. Train the student model to mimic specific aspects of the teacher model's behavior, such as next token prediction or coherent text generation. Explore different distillation techniques, including attention-based distillation and layer-wise distillation.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "fine_tuning_gpt",
-        "Title": "Fine-Tuning for Task Adaptation: A Study on Adapting Pre-Trained GPT Models to New Tasks",
-        "Experiment": "Fine-tune the pre-trained GPT model on a small amount of task-specific data, using a standard supervised learning objective. Evaluate the effectiveness of this approach on a range of tasks and datasets, using metrics such as accuracy and perplexity.",
+        "Name": "context_advantage_training",
+        "Title": "Context Advantage Training for Prefix-Utilizing Autoregressive Language Models",
+        "Experiment": "Add settings use_context_advantage, context_crop_min, context_advantage_weight, context_advantage_margin, and context_advantage_start_iter. Add a learned mask embedding to GPT and modify GPT.forward to optionally accept a boolean input_mask that replaces selected token embeddings with this mask embedding before positional embeddings are added. In the training loop, compute the ordinary next-token cross-entropy on the full X,Y batch as the primary loss. When enabled after context_advantage_start_iter, sample a visible suffix length between context_crop_min and block_size, mask the left prefix of X, and run a second damaged-context forward pass under stop-gradient for its logits. Compute true-token log probabilities from the clean logits and detached damaged logits. On positions inside the visible suffix, add a margin loss relu(context_advantage_margin - (logp_clean - logp_damaged_detached)), averaged over valid tokens. Optimize clean_cross_entropy + context_advantage_weight * advantage_loss. Keep validation and generation unchanged, with ordinary clean validation loss as the primary metric. Log advantage loss, mean clean-minus-damaged true-token log-probability gap, and diagnostic validation loss under fixed visible suffix lengths such as 64, 128, and 256. Compare against the baseline on best validation loss, convergence speed, final train loss, generated samples, and inference tokens per second. Include simple ablations with context_advantage_weight values such as 0.02, 0.05, and 0.1, plus a no-stop-gradient damaged pass control.",
         "Interestingness": 8,
         "Feasibility": 9,
         "Novelty": 6,
         "novel": false
     },
     {
-        "Name": "training_data_ordering",
-        "Title": "The Impact of Training Data Ordering on Language Model Performance",
-        "Experiment": "Modify the get_batch function to create batches with different ordering schemes, such as randomizing the order of the training data or prioritizing more recent text. Evaluate the model's performance on these batches using metrics such as perplexity, accuracy, or F1-score, and repeat the experiment on multiple datasets.",
+        "Name": "context_need_prediction",
+        "Title": "Predicting Token-Level Long-Context Need for Adaptive Autoregressive Modeling",
+        "Experiment": "Extend GPTConfig with use_context_need_prediction, context_horizons such as [32, 64, 128], context_need_weight, context_need_temperature, and context_need_start_iter. Add a small linear context_need_head on top of final hidden states that predicts a scalar long-context-need score per token. Modify GPT.forward to optionally return hidden states and to accept a position_offset so cropped suffix passes can use the same absolute position indices as the corresponding suffix of the full block. During training, compute the ordinary full-context next-token cross-entropy as the primary loss. When enabled after context_need_start_iter, sample one shorter horizon per step, run a second forward pass on X[:, -h:] and Y[:, -h:] with position_offset=block_size-h, and align it with the full-context suffix logits. Compute detached true-token log probabilities from the full-context and short-context logits, define a soft target sigmoid((logp_full - logp_short) / context_need_temperature), and train the context_need_head from the short-context hidden states using BCE or MSE. Optimize full next-token loss plus context_need_weight times the context-need prediction loss; keep standard generation unchanged. Report ordinary full-context validation loss as the main metric, plus context-need prediction error, correlation between predicted need and actual full-minus-short log-probability gain, average predicted need by token-loss quantile, and validation loss under fixed short horizons. Compare against the baseline on best validation loss, convergence speed, final train loss, generated samples, and inference tokens per second. Include ablations with random context-need targets, no position_offset preservation, and an adaptive-generation diagnostic that first runs a short context and reruns full context only when predicted need exceeds a threshold.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 6,
+        "novel": false
+    },
+    {
+        "Name": "latent_state_transition",
+        "Title": "Latent State Transition Regularization for Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_latent_state_transition, latent_transition_weight, latent_transition_start_iter, latent_transition_temperature, and latent_transition_hidden_mult. In GPT.__init__, add a small transition MLP that maps the concatenation of the current final hidden state and a detached expected next-token embedding to a predicted next hidden state. In GPT.forward, after computing final hidden states and logits, form expected next-token embeddings as softmax(detached logits / latent_transition_temperature) multiplied by the detached tied token embedding matrix. When targets are provided and the objective is enabled after latent_transition_start_iter, predict h_{t+1} from h_t and the expected embedding at t, compare to stop-gradient normalized h_{t+1} using cosine distance over valid positions, and add latent_transition_weight times this loss to the ordinary next-token cross-entropy. Keep ordinary train and validation cross-entropy as the primary metrics, and log latent transition loss and cosine similarity as diagnostics. Generation remains unchanged and uses only the standard transformer and lm_head. Compare against the baseline on best validation loss, convergence speed, final train loss, generated samples, total train time, and inference tokens per second. Include focused ablations with transition weights such as 0.01 and 0.03, no expected-token conditioning, no delayed start, and a shuffled-future-hidden control.",
         "Interestingness": 8,
         "Feasibility": 9,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "memory_buffer_transformer",
-        "Title": "Memory Buffer Transformer: Improving Long-Range Dependency Modeling with a Simple Memory Mechanism",
-        "Experiment": "Modify the GPT model to include a fixed-size memory buffer that stores the most recent input tokens. Use a modified attention mechanism to incorporate the memory buffer into the model's predictions. Evaluate the impact of memory buffer size on model performance.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 7,
+        "Novelty": 6,
         "novel": false
     },
     {
-        "Name": "meta_attention_gpt",
-        "Title": "Meta-Learning for Adaptive Attention in GPT Models",
-        "Experiment": "Modify the GPT model to include a meta-learning component that adapts the model's attention mechanism to new tasks and datasets. Train the meta-learning component using an episodic training protocol with a limited number of examples per task, and evaluate the model's performance on a diverse range of tasks and datasets.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": false
-    },
-    {
-        "Name": "word_dropout_auxiliary_task",
-        "Title": "Word Dropout Auxiliary Task: Improving Language Understanding through Multi-Task Learning",
-        "Experiment": "Modify the training loop to include a word dropout auxiliary task, where a certain percentage of words in the input text are randomly replaced with a [MASK] token. Train the model to reconstruct the original text by predicting the missing words, in parallel with the primary language modeling task.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 7,
-        "novel": false
-    },
-    {
-        "Name": "temporal_regularization",
-        "Title": "Temporal Regularization for Mitigating Catastrophic Forgetting in Language Models",
-        "Experiment": "Modify the training loop to include a temporal regularization term that encourages the model to maintain consistency in its predictions over time. Add a L1 or L2 penalty term to the loss function that measures the difference between the model's predictions at different time steps.",
+        "Name": "causal_copy_signal",
+        "Title": "Causal Copy-Signal Supervision for In-Context Repetition Modeling",
+        "Experiment": "Extend GPTConfig with use_copy_signal_auxiliary, copy_aux_weight, copy_num_distance_buckets, copy_max_distance, and copy_start_iter. In GPT.__init__, add two lightweight auxiliary heads on the final hidden states: a binary copy_exists_head predicting whether the target token appears in the visible causal prefix, and a copy_distance_head predicting a logarithmic bucket for the distance to the most recent previous occurrence when the target is copyable. In the training loop, derive labels directly from each X,Y batch: for each position t, search X[b, :t + 1] for the most recent occurrence of Y[b, t], set the copy-exists label, and bucket the distance t + 1 - previous_index up to copy_max_distance. Modify GPT.forward to return auxiliary logits when enabled. After copy_start_iter, train with total_loss = next_token_cross_entropy + copy_aux_weight * (copy_exists_loss + copy_distance_loss_on_copyable_positions), with the distance loss normalized only over copyable positions. Keep ordinary next-token train and validation cross-entropy as the primary metric, and keep generation unchanged using only lm_head. Log copy-existence accuracy, distance-bucket accuracy, validation loss split by copyable versus non-copyable targets, final train loss, total train time, generated samples, and inference tokens per second. Compare against the baseline across the same seeds, with ablations over copy_aux_weight values such as 0.02, 0.05, and 0.1, plus a shuffled-copy-label control to test whether gains come from meaningful causal copy structure rather than generic auxiliary regularization.",
         "Interestingness": 8,
         "Feasibility": 9,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "graph_augmented_gpt",
-        "Title": "Graph-Augmented GPT for Improved Entity Relationship Modeling",
-        "Experiment": "Modify the GPT model to incorporate a graph-based representation of entity relationships, using a graph convolutional network (GCN) or graph attention network (GAT) to augment the existing attention mechanisms.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "bias_aware_gpt",
-        "Title": "Bias-Aware GPT: A Self-Aware Language Model for Mitigating Biases",
-        "Experiment": "Modify the GPT model to include a bias detection mechanism. This could involve training a separate module to identify biased language or using existing techniques such as adversarial training. Evaluate the effectiveness of the bias detection mechanism using the Bias in Bios dataset.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
+        "Novelty": 6,
         "novel": false
     },
     {
-        "Name": "multi_objective_gpt",
-        "Title": "Multi-Objective Optimization for GPT Models: A Study on Language Modeling and Sentiment Analysis",
-        "Experiment": "Modify the forward function of the GPT class to output predictions for language modeling and sentiment analysis. Define separate optimizers for each task and modify the configure_optimizers function to use a weighted sum of the individual task losses. Use a subset of the training data with sentiment annotations for the sentiment analysis task.",
+        "Name": "budgeted_attention_spans",
+        "Title": "Budgeted Learned Attention Spans for Context-Efficient Autoregressive Transformers",
+        "Experiment": "Extend GPTConfig with use_learned_attention_spans, span_penalty_weight, min_attention_span, max_attention_span, span_temperature, and span_init_frac. Modify Block and CausalSelfAttention so each attention layer knows its layer index and each head has one learnable span parameter constrained between min_attention_span and max_attention_span. When enabled, force the manual attention path and add a smooth causal distance mask to attention logits using log(sigmoid((span_h - distance) / span_temperature) + eps), so heads can softly ignore tokens beyond their learned receptive field while remaining causal. Add an auxiliary span budget loss equal to span_penalty_weight times the mean learned span divided by block_size, and add it to the ordinary next-token cross-entropy during training while keeping standard train and validation cross-entropy as the primary metrics. Log mean, min, and max learned spans by layer, span budget loss, estimated attention-token budget, final train loss, best validation loss, total train time, generated samples, and inference tokens per second. After training, optionally evaluate a hard-span version that rounds learned spans to integer causal windows without retraining, to test whether the learned soft spans correspond to usable context truncation. Compare against the baseline, a fixed local-window attention model with the same average span, and a no-penalty learned-span variant. Run small ablations over span_penalty_weight values such as 0.0001, 0.0003, and 0.001.",
         "Interestingness": 8,
         "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "attention_dropout_transformer",
-        "Title": "Attention Dropout Transformer: Regularizing the Model with Targeted Dropout",
-        "Experiment": "Modify the transformer model to use attention dropout, which randomly drops out attention weights during training. Investigate the use of attention dropout in combination with other regularization techniques, such as dropout and weight decay. Evaluate the model's performance on language modeling and text classification tasks, and compare the results with the baseline model.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 7,
+        "Novelty": 5,
         "novel": false
     },
     {
-        "Name": "domain_knowledge_graph_gpt",
-        "Title": "Domain-Specific Knowledge Graph-Augmented GPT for Improved Reasoning and Inference",
-        "Experiment": "Modify the GPT model to incorporate a pre-constructed domain-specific knowledge graph. Use a graph attention network (GAT) to integrate the knowledge graph into the model's attention mechanism. Evaluate the model's performance on tasks that require reasoning and inference in the chosen domain.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "difficulty_aware_sampling",
-        "Title": "Difficulty-Aware Sampling for Language Modeling: A Study on Dynamic Learning Objectives",
-        "Experiment": "Modify the training loop to use a difficulty-aware sampling strategy for the training data. Assign a difficulty score to each data point and sample them based on their difficulty, with a bias towards the more challenging ones. Evaluate the effectiveness of this approach using a robust set of metrics.",
+        "Name": "lowrank_mixture_softmax",
+        "Title": "Low-Rank Mixture Softmax Heads for Escaping the Autoregressive Softmax Bottleneck",
+        "Experiment": "Extend GPTConfig with use_lowrank_mixture_softmax, num_softmax_experts, softmax_expert_rank, mixture_gate_hidden_mult, and mixture_dropout. In GPT.__init__, keep the existing tied lm_head as the base output head, then add small residual low-rank logit experts, each implemented as a hidden-to-rank projection followed by a rank-to-vocab projection, plus a lightweight gating network from hidden states to num_softmax_experts + 1 mixture logits. Modify GPT.forward so that when enabled it computes base logits, expert-corrected logits, per-expert log probabilities, and the gated mixture log probability using logsumexp; train with the negative log probability assigned to the true next token. Keep standard hard next-token validation negative log likelihood under the mixed distribution as the primary metric, and log base-head-only loss, gate entropy, and mean expert usage as diagnostics. Modify generate so sampling uses the same mixed probability distribution at the final position. Compare against the baseline on best validation loss, final train loss, convergence speed, total train time, parameter count, generated samples, and inference tokens per second. Include focused ablations for 2 versus 4 residual experts, expert ranks such as 16 and 32, and a parameter-matched single low-rank output adapter control to test whether gains come from mixture expressivity rather than added parameters.",
         "Interestingness": 8,
         "Feasibility": 9,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "discrete_time_echo_state_gpt",
-        "Title": "Discrete-Time Echo State Networks for Efficient Temporal Modeling in GPT",
-        "Experiment": "Replace the existing RNN layers in the GPT model with DTESN layers. Explore using simplified versions of the DTESN layers, such as sparse or pruned DTESNs. Combine the DTESN layers with a hierarchical attention framework to attend to different levels of abstraction in the input data.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 8,
+        "Novelty": 5,
         "novel": false
     },
     {
-        "Name": "input_complexity_adaptation",
-        "Title": "Input Complexity Adaptation for Efficient Language Modeling",
-        "Experiment": "Modify the attention mechanism to adapt based on input complexity, measured using perplexity or entropy. Evaluate the model's performance on complex tasks and compare the results with the baseline model.",
+        "Name": "causal_prefix_recall",
+        "Title": "Causal Prefix Recall Supervision for Context-Retentive Autoregressive Models",
+        "Experiment": "Extend GPTConfig with use_prefix_recall, prefix_recall_weight, prefix_recall_start_iter, prefix_recall_distances such as [1, 2, 4, 8, 16, 32, 64, 128], prefix_recall_num_triples, and prefix_recall_dropout. In GPT.__init__, add a learned embedding for each recall distance and a lightweight prefix_recall_head that predicts vocabulary logits from the final hidden state plus the selected distance embedding. Modify GPT.forward to optionally return final hidden states. In the training loop, after prefix_recall_start_iter, sample prefix_recall_num_triples valid batch/time/distance triples with t >= d, using log-spaced distances, and train the recall head to predict the earlier input token idx[b, t - d] from h[b, t] conditioned on distance d. Optimize ordinary next-token cross-entropy plus prefix_recall_weight times the sampled prefix-recall cross-entropy, while keeping ordinary train and validation next-token loss as the primary metric. Log auxiliary recall loss, recall accuracy split by distance, best validation loss, final train loss, total train time, generated samples, and inference tokens per second. Generation remains unchanged and does not use the recall head. Include ablations over prefix_recall_weight values such as 0.01, 0.03, and 0.1, short-only versus long-distance probes, and a shuffled-prefix-token control to test whether gains come from meaningful causal memory rather than generic auxiliary regularization.",
+        "Interestingness": 8,
+        "Feasibility": 9,
+        "Novelty": 6,
+        "novel": true
+    },
+    {
+        "Name": "sketched_probe_residual_alignment",
+        "Title": "Sketched Probe-Residual Alignment for Generalization-Aware Language Model Training",
+        "Experiment": "Reserve a small fixed set of train.bin chunks as a probe split and exclude those chunks from ordinary training batch sampling, leaving val.bin untouched for evaluation. Add settings use_probe_residual_alignment, probe_fraction, residual_sketch_dim, alignment_start_iter, alignment_interval, alignment_strength, alignment_temperature, alignment_clip, and probe_batch_size. Create a fixed random projection matrix from vocabulary logits to residual_sketch_dim. Modify the training loop to compute unreduced per-example cross-entropy and a detached residual sketch for each example: average over positions of softmax(logits) projected through the random matrix minus the projected target-token vectors. At alignment intervals, estimate a probe residual sketch from one or more reserved probe batches. After warmup, score each training example by cosine similarity between its residual sketch and the probe residual sketch, transform scores into clipped positive weights, normalize weights to mean one, and optimize the weighted mean next-token cross-entropy. Keep ordinary unweighted train and validation cross-entropy as the primary metrics, and keep generation unchanged. Log probe loss, mean alignment score, weight variance, best validation loss, final train loss, total train time, generated samples, and inference tokens per second. Compare against the baseline with the same seeds, plus ablations for random weights with matched variance, raw-loss hard-example weighting, no probe exclusion, and alignment_strength values such as 0.25, 0.5, and 1.0.",
         "Interestingness": 8,
         "Feasibility": 8,
-        "Novelty": 7,
+        "Novelty": 6,
         "novel": false
     },
     {
-        "Name": "linguistic_complexity_manipulation",
-        "Title": "Linguistic Complexity Manipulation for Language Models: A Study on Performance and Generalization",
-        "Experiment": "Modify the input data to increase or decrease its linguistic complexity, such as by adding or removing complex syntactic structures, idiomatic expressions, or domain-specific vocabulary. Introduce a linguistic complexity-aware objective function to penalize the model for producing outputs that exceed a certain level of linguistic complexity. Evaluate the model's performance on a range of tasks, including language modeling, text classification, and question answering.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "temporal_knowledge_forgetting_gpt",
-        "Title": "Temporal Knowledge Forgetting in Language Models: A Study on Adapting to Sudden Changes in Data Distributions",
-        "Experiment": "Modify the GPT model to incorporate a temporal knowledge forgetting mechanism, where the model intentionally forgets knowledge that is no longer relevant or useful due to sudden changes in the data distribution. Introduce a new objective function that encourages the model to forget outdated knowledge, or modify the attention mechanism to focus on more recent information. Evaluate the model's performance on tasks that require adaptability to sudden changes in the data distribution.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "monte_carlo_confidence_aware_gpt",
-        "Title": "Monte Carlo Confidence-Aware GPT: Estimating Uncertainty via Dropout",
-        "Experiment": "Modify the GPT model to use Monte Carlo dropout to estimate the model's uncertainty. Train the model with dropout and then use the dropout weights to estimate the model's uncertainty at test time. Use the estimated uncertainty to modulate the loss function and improve the model's performance.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "calibrated_confidence_aware_gpt",
-        "Title": "Calibrated Confidence-Aware GPT: Estimating Uncertainty in Language Modeling",
-        "Experiment": "Modify the GPT model to output a confidence score along with its predictions. Add a new output layer to estimate the model's confidence in its predictions. Incorporate a calibration mechanism, such as temperature scaling or Platt scaling, to improve the accuracy of the confidence estimates. Add a robustness regularization term to the loss function to encourage conservative confidence estimates for out-of-distribution inputs.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "factual_knowledge_neurons",
-        "Title": "Identifying Factual Knowledge Neurons in Language Models",
-        "Experiment": "Modify the GPT model to include a knowledge neuron module that identifies which neurons are most responsible for storing factual information. Use techniques from explainable AI, such as saliency maps or feature importance scores, to identify the knowledge neurons. Evaluate the effectiveness of the knowledge neuron module on a benchmark such as TriviaQA or SQuAD.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "domain_adaptation_meta_learning",
-        "Title": "Domain Adaptation via Meta-Learning for Language Modeling",
-        "Experiment": "Modify the GPT model to include a meta-learning component that adapts the model to new domains or tasks. Train the model on a set of tasks that require it to adapt to new domains or tasks, and evaluate its performance on a range of language tasks, including language modeling and text classification.",
-        "Interestingness": 8,
+        "Name": "local_causal_manifold_mixup",
+        "Title": "Local Causal Manifold Mixup for Smooth Autoregressive Context Representations",
+        "Experiment": "Extend GPTConfig with use_manifold_mixup, mixup_alpha, mixup_weight, mixup_start_iter, mixup_num_positions, and mixup_pairing_mode. Modify GPT.forward to optionally return the final normalized hidden states before lm_head, while keeping the ordinary logits and next-token cross-entropy unchanged. In the training loop, after the standard forward pass, if manifold mixup is enabled and iter_num >= mixup_start_iter, sample up to mixup_num_positions batch-time hidden vectors and their target tokens. For the main method, pair each sampled hidden vector with a nearby non-identical vector using cosine similarity within the sampled set; include random pairing as a control. Draw lambda from Beta(mixup_alpha, mixup_alpha), form mixed_h = lambda * h_i + (1 - lambda) * h_j, compute mixed logits with the tied lm_head, and add mixup_weight times the convex-label loss lambda * CE(mixed_logits, y_i) + (1 - lambda) * CE(mixed_logits, y_j) to the ordinary next-token loss. Keep standard train and validation cross-entropy as the primary metrics, and log mixup loss, prediction entropy, mean confidence, and optionally expected calibration error. Generation remains unchanged and uses only the normal model path, so inference speed should be unaffected. Compare against the baseline on best validation loss, final train loss, calibration diagnostics, generated samples, total train time, and inference tokens per second. Include focused ablations over mixup_weight values such as 0.02, 0.05, and 0.1, mixup_alpha values such as 0.2 and 0.4, and nearest-neighbor versus random pairing.",
+        "Interestingness": 7,
         "Feasibility": 9,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "dual_scale_attention_gpt",
-        "Title": "Dual-Scale Attention in GPT: Capturing Long-Range Dependencies with Sparse Attention",
-        "Experiment": "Add a single additional attention layer to the GPT model that attends to a larger context window than the existing attention mechanism. Use a sparse attention mechanism, such as sparse self-attention or axial attention, to reduce computational complexity.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "multimodal_emotionally_intelligent_gpt",
-        "Title": "Multimodal Emotionally Intelligent GPT: Generating Text that Understands and Expresses Emotions",
-        "Experiment": "Modify the dataset to include emotional labels through sentiment analysis or emotional annotation. Use a multimodal approach to incorporate both text and emotional labels as input to the model. Fine-tune the model using a combination of language modeling and emotional intelligence objectives. Evaluate the model's performance using metrics such as emotional accuracy, empathy, and sentiment analysis.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "availability_heuristic_gpt",
-        "Title": "Availability Heuristic-Aware GPT: Simulating Human-Like Conversational Flow in Language Generation",
-        "Experiment": "Modify the GPT model's attention mechanism to incorporate the availability heuristic. Introduce a weighted attention layer that prioritizes recent or frequent events, and evaluate the generated text's conversational flow and coherence using a set of custom metrics.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "interpretable_dynamic_attention_gpt",
-        "Title": "Interpretable Dynamic Attention GPT: A Multi-Task Learning Approach to Adaptive Context Window Size",
-        "Experiment": "Modify the existing GPT model to incorporate a dynamic attention mechanism that uses a learned controller to adaptively adjust the context window size. Train the controller using a multi-task learning approach, where it is trained to predict both attention weights and auxiliary tasks such as part-of-speech tagging or named entity recognition. Evaluate the performance of the modified model on a range of tasks that require different types of attention.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "recency_effect_gpt",
-        "Title": "Recency Effect-Aware GPT: Simulating Human-Like Decision-Making in Language Generation",
-        "Experiment": "Modify the attention mechanism in the GPT model to use a weighted attention layer that prioritizes recent input tokens, incorporating the recency effect. Evaluate the generated text's perplexity and BLEU score to assess the impact of the recency effect on the language model's performance.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "idiomatic_gpt",
-        "Title": "Idiomatic GPT: A Language Model with Idiom Recognition and Generation",
-        "Experiment": "Modify the GPT model to include an idiom recognition module that uses a combination of attention mechanisms and knowledge graphs to identify and generate idiomatic expressions.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "selective_forgetting_gpt",
-        "Title": "Selective Forgetting in GPT: A Novel Approach to Memory Consolidation",
-        "Experiment": "Modify the attention mechanism in the GPT model to include a forgetting component that gradually reduces the importance of older information over time. Evaluate the effectiveness of this mechanism using metrics such as recall from a longer context window or reduction in catastrophic forgetting.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "syntactic_complexity_analysis",
-        "Title": "Syntactic Complexity Analysis in Language Models",
-        "Experiment": "Modify the training data to include a syntactic complexity metric, such as the average sentence length or the number of clauses per sentence. Analyze the model's performance on different subsets of the training data with varying levels of syntactic complexity, compared to a control group trained on a random subset of the data.",
-        "Interestingness": 8,
-        "Feasibility": 9,
-        "Novelty": 8,
-        "novel": false
-    },
-    {
-        "Name": "linguistic_difficulty_gpt",
-        "Title": "Linguistic Difficulty-Aware GPT: Using Linguistic Features to Predict Input Text Complexity",
-        "Experiment": "Add a linguistic difficulty estimation module to the GPT model, which predicts the difficulty of the input text based on linguistic features such as sentence length, syntactic complexity, and semantic ambiguity. Use the estimated difficulty to adjust the attention weights in the model, with more attention allocated to complex or difficult input texts. Evaluate the performance of the modified model on a range of input texts with varying levels of linguistic complexity.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "linguistic_complexity_aware_gpt",
-        "Title": "Linguistic Complexity-Aware GPT: Improving Performance on Complex Input Texts",
-        "Experiment": "Modify the attention mechanism to incorporate a linguistic complexity estimation module. Evaluate the performance of the modified model on language modeling tasks with varying levels of linguistic complexity.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "recency_effect_gpt",
-        "Title": "Incorporating the Recency Effect into Language Models for More Coherent and Context-Dependent Text Generation",
-        "Experiment": "Modify the attention mechanism in the GPT model to prioritize recent input tokens, using a new weighting scheme that decays the importance of input tokens over time. Evaluate the language model's performance on text generation tasks using metrics that specifically evaluate coherence and context-dependence.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "dynamic_attention_gpt",
-        "Title": "Dynamic Attention GPT: Adapting to Varying Levels of Cognitive Load",
-        "Experiment": "Modify the GPT model to use a dynamic attention mechanism that adjusts its attention weights based on the average sentence length of the input text. Evaluate the performance of the modified model on language modeling tasks such as text generation and language translation.",
-        "Interestingness": 8,
-        "Feasibility": 9,
-        "Novelty": 8,
-        "novel": false
-    },
-    {
-        "Name": "primacy_effect_gpt",
-        "Title": "The Primacy Effect in Language Models: Exploring the Impact on Text Completion",
-        "Experiment": "Modify the GPT model to introduce a primacy effect, where the model is biased towards generating text that is overly influenced by the first few tokens of the input. Evaluate the performance of the modified model on a text completion task, using metrics such as perplexity, BLEU score, and novelty score.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 7,
-        "novel": true
-    },
-    {
-        "Name": "novelty_conditioned_gpt",
-        "Title": "Novelty-Conditioned GPT: Adjusting Language Generation based on Input Novelty",
-        "Experiment": "Train the GPT model to detect novel input sequences and adjust its language generation accordingly. Use a novelty detection module to identify novel input sequences and modify the output generation to be more diverse and creative when novelty is detected.",
-        "Interestingness": 8,
-        "Feasibility": 9,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "availability_heuristic_gpt",
-        "Title": "Availability Heuristic in GPT: Exploring the Impact of Recent Information on Language Generation",
-        "Experiment": "Modify the attention mechanism in the GPT model to give more weight to recently or frequently encountered information. Evaluate the performance of the modified model on a range of tasks, including language modeling, text generation, and text classification.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "frequency_based_forgetting_gpt",
-        "Title": "Frequency-Based Forgetting in GPT: Exploring the Impact of Forgetting on Language Model Performance",
-        "Experiment": "Modify the GPT model to incorporate a frequency-based forgetting mechanism that forgets input tokens during training. Train the model with this forgetting mechanism and evaluate its performance on various tasks, including language modeling, text generation, and question answering. Investigate the interactions between the forgetting mechanism and other model components, such as the attention mechanism.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "curiosity_driven_gpt",
-        "Title": "Curiosity-Driven Language Modeling: Exploring Novel Patterns in Input Data",
-        "Experiment": "Modify the attention mechanism to incorporate a curiosity-driven component, which encourages the model to explore and learn from novel or uncertain patterns in the input data. Introduce a new objective function that rewards the model for discovering new patterns. Use interpretable techniques to analyze the attention weights and understand what the model is focusing on.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "semantic_drift_analysis",
-        "Title": "Semantic Drift Analysis in Language Models: A Study on Temporal Changes in Text",
-        "Experiment": "Modify the `generate` function to produce text at different time steps. Use Latent Dirichlet Allocation (LDA) to identify changes in the topics or themes discussed in the generated text over time. Compare the model's performance on different datasets from different time periods.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "syntactic_complexity_aware_gpt",
-        "Title": "Syntactic Complexity-Aware GPT: Adapting Attention to Syntactic Complexity",
-        "Experiment": "Modify the attention mechanism to incorporate a syntactic complexity estimation module. The module will predict the syntactic complexity of the input text based on features such as sentence length, clause density, and phrase structure. The estimated syntactic complexity will then be used to adjust the attention weights in the model, with more attention allocated to complex or difficult input texts. Evaluate the performance of the modified model on language modeling tasks using a dataset with varying levels of syntactic complexity.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "entity_relationship_gpt",
-        "Title": "Entity Relationship-Augmented GPT: Improving Reasoning about Entities and Relationships",
-        "Experiment": "Train an entity relationship extraction module to extract relationships between entities mentioned in the text. Integrate this module into the GPT model and evaluate its performance on tasks such as question answering, text classification, and entity disambiguation.",
-        "Interestingness": 8,
-        "Feasibility": 9,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "meta_forgetting_gpt",
-        "Title": "Meta-Forgetting in Language Models: A Study on Intentional Forgetting for Improved Generalization",
-        "Experiment": "Modify the training loop to incorporate a regularization term (L1 or L2 penalty on model weights) that penalizes the model for remembering certain patterns or information. Use a validation set to evaluate the model's performance on unseen data and adjust the forgetting mechanism using a hyperparameter that controls the strength of the regularization term.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "domain_invariant_reps",
-        "Title": "Learning Domain-Invariant Representations for Language Modeling",
-        "Experiment": "Modify the language model to learn domain-invariant representations by adding a domain-invariant loss function or using domain-adversarial training. Evaluate the model on a benchmark dataset and measure its ability to adapt to new domains.",
-        "Interestingness": 8,
-        "Feasibility": 7,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "information_density_aware_gpt",
-        "Title": "Information Density-Aware GPT: Adapting Attention to Information Density",
-        "Experiment": "Modify the GPT model to incorporate an information density estimation module. The module will predict the information density of the input text based on features such as sentence length, entity frequency, and semantic complexity. The estimated information density will then be used to adjust the attention weights in the model, with more attention allocated to dense or complex input texts. Evaluate the model's performance on language modeling tasks using a dataset with varying levels of information density.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "syntactic_complexity_aware_gpt",
-        "Title": "Syntactic Complexity-Aware GPT: Adapting Attention to Syntactic Complexity",
-        "Experiment": "Modify the GPT model to incorporate a syntactic complexity estimation module using the Flesch-Kincaid readability test. The estimated syntactic complexity will be used to adjust the attention weights in the model, with more attention allocated to complex or difficult input texts. Evaluate the model's performance on language modeling tasks using a dataset with varying levels of syntactic complexity.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 8,
-        "novel": true
-    },
-    {
-        "Name": "cognitive_load_aware_gpt",
-        "Title": "Cognitive Load-Aware GPT: Adapting Attention to Cognitive Load",
-        "Experiment": "Modify the GPT model to incorporate a cognitive load estimation module. This module will predict the cognitive load of the input text based on measurable features such as complex vocabulary frequency and ambiguous syntax presence. The estimated cognitive load will then be used to adjust the attention weights in the model, with more attention allocated to input texts that are predicted to have a higher cognitive load.",
-        "Interestingness": 9,
-        "Feasibility": 8,
-        "Novelty": 9,
-        "novel": true
-    },
-    {
-        "Name": "contrastive_forgetting_gpt",
-        "Title": "Contrastive Forgetting in Language Models: Preserving General Knowledge while Forgetting Domain-Specific Patterns",
-        "Experiment": "Modify the training loop to incorporate a contrastive forgetting loss function that focuses on forgetting domain-specific patterns. Use a combination of metrics, including perplexity, accuracy, and novelty scores, to evaluate the model's performance on a specific task such as text generation.",
-        "Interestingness": 8,
-        "Feasibility": 8,
-        "Novelty": 8,
+        "Novelty": 6,
         "novel": true
     }
 ]
